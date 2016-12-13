@@ -1,0 +1,59 @@
+
+= SySS Spy =
+
+Ein Meterpreter / Empire Agent / ... Clon
+
+
+= Terminologie =
+
+ * Agent: Software, die auf dem Opfer-System aktiv ist
+ * Handler: Software, die Kommandos des Angreifers entgegennimmt und den Agenten "führt" (läuft meist auf einem Angreifer-System, kann aber auch auf dem Opfer-System leben, wenn man will)
+ * Stager: Kurzer Schnipsel, der den Agenten bezieht und aktiviert
+ * Transport: Kommunikationsweg zwischen Handler und Agent
+
+
+= Stager =
+
+Der Stager dient dazu
+
+ a) einen Kommunikationskanal mit dem Handler zu öffen
+ b) den Agenten zu beziehen und ihm den Kommunikationskanal zu geben
+
+Der Handler kann dabei entscheiden bestimmte Features (Kommunikationswege, Module, ...) mit dem Agenten auszuliefern oder nicht.
+
+
+= Sprachen / Systeme =
+
+Für folgende Sprachen könnte es einen Stager/Agenten geben:
+
+ * cmd
+ * powershell
+ * exe binary / dll
+ * bash
+
+
+= Transport =
+
+Für folgende Übertragungswege könnte es einen Stager/Agenten geben:
+
+ * HTTPS
+ * TCP
+ * DNS
+ * Clipboard
+ * Lokal (Handler spawnt Agent auf eigenem System)
+
+
+
+= Inspirationsquellen =
+
+ * Empire:
+  ** https://github.com/adaptivethreat/Empire/blob/master/lib/common/stagers.py
+     -- generate_launcher erstellt einen HTTP(S)-Stager
+  ** https://github.com/adaptivethreat/Empire/tree/master/data/agent
+     -- stager (2. Stufe nach launcher) und agent (3. Stufe) für das weitere Setup
+
+ * Metasploit:
+  ** https://github.com/rapid7/metasploit-framework/blob/master/lib/msf/core/exploit/cmdstager.rb
+     -- CmdStager for bourne, ...
+
+ * ReflectiveDLLInjection: https://github.com/stephenfewer/ReflectiveDLLInjection
