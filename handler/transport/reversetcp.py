@@ -18,6 +18,16 @@ class TransportReverseTcp (Transport,ModuleBase):
                 'Description'   :   'Port to listen on',
                 'Required'      :   True,
                 'Value'         :   "8080"
+            },
+            'CONNECTHOST' : {
+                'Description'   :   'Interface IP to listen on (if not set, uses LHOST)',
+                'Required'      :   False,
+                'Value'         :   None
+            },
+            'CONNECTPORT' : {
+                'Description'   :   'Port to connect to (if not set, uses LPORT)',
+                'Required'      :   False,
+                'Value'         :   None
             }
         }
         self.conn = None
@@ -25,16 +35,18 @@ class TransportReverseTcp (Transport,ModuleBase):
     
     def setoption(self, name, value):
 
-        # TODO: check ip
+        # TODO: check ips
 
-        if name.upper() == "LPORT" and not(self._validate_lport(value)):
+        if name.upper() == "LPORT" and not(self._validate_lport("LPORT",value)):
+            return True # value found, but not set
+        if name.upper() == "CONNECTPORT" and not(self._validate_lport("CONNECTPORT",value)):
             return True # value found, but not set
 
         return ModuleBase.setoption(self, name, value)
 
-    def _validate_lport(self, port):
+    def _validate_lport(self, name, port):
         if not port or not str(port).isdigit() or int(port) < 1 or int(port) > 65535:
-            print_error("LPORT is invalid, should be 1 <= port <= 65535")
+            print_error(str(name)+" is invalid, should be 1 <= port <= 65535")
             return False
         else:
             return True
@@ -46,11 +58,14 @@ class TransportReverseTcp (Transport,ModuleBase):
         
         valid = ModuleBase.validate_options(self)
         
-        # TODO: check ip 
+        # TODO: check ips
 
         # check port
         port = self.options['LPORT']['Value']
-        if not(self._validate_lport(port)):
+        if port and not(self._validate_lport('LPORT', port)):
+            valid = False
+        port = self.options['CONNECTPORT']['Value']
+        if port and not(self._validate_lport('CONNECTPORT', port)):
             valid = False
 
         return valid

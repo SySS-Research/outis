@@ -2,8 +2,8 @@
 
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message
-from .platform.powershell import PlatformPowershell
-from helpers.log import print_message, print_error
+from platform.powershell.powershell import PlatformPowershell
+from helpers.log import *
 from helpers.modulebase import ModuleBase
 
 class Handler(ModuleBase):
@@ -39,14 +39,32 @@ class Handler(ModuleBase):
             return False
 
     def validate_options(self):
-        return ModuleBase.validate_options(self)
+        return ModuleBase.validate_options(self) and self.transport.validate_options() and self.platform.validate_options()
+
+    def generatestager(self):
+        if not self.validate_options():
+            return
+        
+        stager = self.platform.getstager(self)
+        if stager:
+            print_message("Use the following stager code:")
+            print_text(stager)
 
     def run(self):
         if not self.validate_options():
             return
 
         self.transport.open()
-        
+
+        # if staging is active, provide stager when first conntact        
+        if self.platform.isstaged():
+            agent = bytes(self.platform.getagent(self), 'utf-8')
+            print_message("Sending staged agent ({} bytes)...".format(len(agent)))
+            self.transport.send(agent)
+            # TODO stager upgraden statt verbindung zu erneuern
+            self.transport.close()
+            self.transport.open()
+
         message0 = Message()
         message0.create(0x01, b'Test0')
         self.transport.sendmessage(message0)

