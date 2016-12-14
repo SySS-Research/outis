@@ -1,5 +1,5 @@
 
-from .transport import Transport
+from ..transport.transport import Transport
 from helpers.log import *
 import struct
 

@@ -2,8 +2,9 @@
 from .transport import Transport
 from helpers.log import print_message, print_error
 import socket
+from helpers.modulebase import ModuleBase
 
-class TransportReverseTcp (Transport):
+class TransportReverseTcp (Transport,ModuleBase):
     """ opens a tcp listener and allows connections from agents """
 
     def __init__(self, **kwargs):
@@ -19,37 +20,40 @@ class TransportReverseTcp (Transport):
                 'Value'         :   "8080"
             }
         }
-
+        self.conn = None
+        self.socket = None
     
+    def setoption(self, name, value):
+
+        # TODO: check ip
+
+        if name.upper() == "LPORT" and not(self._validate_lport(value)):
+            return True # value found, but not set
+
+        return ModuleBase.setoption(self, name, value)
+
+    def _validate_lport(self, port):
+        if not port or not str(port).isdigit() or int(port) < 1 or int(port) > 65535:
+            print_error("LPORT is invalid, should be 1 <= port <= 65535")
+            return False
+        else:
+            return True
+
     def validate_options(self):
         """
         Validate all currently set listener options.
         """
         
-        valid = True
-
-        # make sure all options are set
-        for option,values in self.options.items():
-            if values['Required'] and not(values['Value']) or (values['Value'] == ''):
-                print_error(str(option)+" must be set")
-                valid = False
+        valid = ModuleBase.validate_options(self)
         
-        # TODO: check ip and port
+        # TODO: check ip 
 
+        # check port
         port = self.options['LPORT']['Value']
-        if not port or not str(port).isdigit() or int(port) < 1 or int(port) > 65535:
-            print_error("LPORT is invalid")
+        if not(self._validate_lport(port)):
             valid = False
 
         return valid
-    
-    def setoption(self, name, value):
-        if name and isinstance(name, str) and name.upper() in self.options:
-            self.options[name.upper()]['Value'] = value
-            return True
-        else:
-            print_error(str(name.upper())+" not recognized as an option")
-            return False
     
     def open(self):
         if not self.validate_options():
