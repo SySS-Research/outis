@@ -2,11 +2,10 @@
 
 from handler.handler import Handler
 from helpers.log import *
-import os.path
 
-
-installPath = os.path.abspath(os.path.dirname(__file__))
-print_debug("Main", "installPath = {}".format(installPath))
+#import os.path
+#installPath = os.path.abspath(os.path.dirname(__file__))
+#print_debug("Main", "installPath = {}".format(installPath))
 
 handler = Handler()
 
@@ -15,6 +14,8 @@ handler = Handler()
 #handler.setoption("TRANSPORT", "TEST")
 #handler.setoption("BLUB", "TEST")
 
+#handler.setoption("STAGEENCODING", "TRUE") # is default
+handler.setoption("STAGEENCODINGKEY", "A")
 handler.setoption("LHOST", "10.201.1.83")
 
 handler.generatestager()

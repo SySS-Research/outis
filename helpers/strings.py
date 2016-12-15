@@ -1,6 +1,17 @@
 
-import re, base64
+import re, base64, string
 from Crypto.Random import random
+
+def random_string(length=-1, charset=string.ascii_letters):
+    """
+    Returns a random string of "length" characters.
+    If no length is specified, resulting string is in between 6 and 15 characters.
+    A character set can be specified, defaulting to just alpha letters.
+    """
+
+    if length == -1: length = random.randrange(6,16)
+    random_string = ''.join(random.choice(charset) for x in range(length))
+    return random_string
 
 def randomize_capitalization(data):
     """
@@ -16,7 +27,7 @@ def enc_powershell(raw):
 
     return base64.b64encode(b"".join([bytes([char]) + b"\x00" for char in bytes(raw, 'utf-8')])).decode("utf-8")
 
-def powershell_launcher(raw):
+def powershell_launcher(raw, baseCmd="powershell.exe -NoP -sta -NonI -W Hidden -Enc "):
     """
     Build a one line PowerShell launcher with an -enc command.
     """
@@ -24,7 +35,7 @@ def powershell_launcher(raw):
     # encode the data into a form usable by -enc
     encCMD = enc_powershell(raw)
 
-    return "powershell.exe -NoP -sta -NonI -W Hidden -Enc " + encCMD
+    return baseCmd + encCMD
 
 def strip_powershell_comments(data):
     """

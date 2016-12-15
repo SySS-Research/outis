@@ -26,7 +26,7 @@ class Message:
             print_error(str(transport)+" is not a transport")
             return
         
-        buf = transport.receive()
+        buf = transport.receive(leng=MESSAGE_HEADER_LEN)
         if not buf:
             print_error("Invalid empty message")
             return
@@ -41,7 +41,7 @@ class Message:
         print_debug(DEBUG_MODULE+" Parse", "type: "+str(self.type))
         print_debug(DEBUG_MODULE+" Parse", "length: "+str(self.length))
         while len(buf) < self.length:
-            morebuf = transport.receive()
+            morebuf = transport.receive(leng=min(1024,self.length))
             if not morebuf:
                 print_error("Connection ended before end of message, message so far: "+str(buf))
                 return

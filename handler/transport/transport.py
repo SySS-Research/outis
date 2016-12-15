@@ -5,7 +5,7 @@ class Transport:
     def __init__(self):
         raise NotImplementedError("Transport.init should have been implemented by transport module")
     
-    def open(self):
+    def open(self, staged=False):
         raise NotImplementedError("Transport.open should have been implemented by transport module")
 
     def send(self, data):
@@ -13,17 +13,30 @@ class Transport:
 
     def receive(self):
         raise NotImplementedError("Transport.receive should have been implemented by transport module")
+
+    def upgradefromstager(self):
+        raise NotImplementedError("Transport.upgradefromstager should have been implemented by transport module")
     
     def close(self):
         raise NotImplementedError("Transport.close should have been implemented by transport module")
 
     def receivemessage(self):
+        """
+        receives a message format message from the agent
+        wrapper for Message.parseFromTransport
+        """
+
         from ..message.message import Message
         message = Message()
         message.parseFromTransport(self)
         return message
 
     def sendmessage(self, message):
+        """
+        sends the given message format message to the agent
+        wrapper for Message.sendToTransport
+        """
+
         from ..message.message import Message
         message.sendToTransport(self)
 

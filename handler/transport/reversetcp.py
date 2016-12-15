@@ -32,6 +32,7 @@ class TransportReverseTcp (Transport,ModuleBase):
         }
         self.conn = None
         self.socket = None
+        self.staged = False
     
     def setoption(self, name, value):
 
@@ -70,9 +71,11 @@ class TransportReverseTcp (Transport,ModuleBase):
 
         return valid
     
-    def open(self):
+    def open(self, staged=False):
         if not self.validate_options():
             return
+
+        self.staged = staged
 
         lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))        
 
@@ -81,7 +84,7 @@ class TransportReverseTcp (Transport,ModuleBase):
         self.socket.bind(lparams)
         self.socket.listen(1)
 
-        print_message("TCP Transport listening on {}:{}".format(*lparams))
+        print_message("TCP transport listening on {}:{}".format(*lparams))
         
         self.conn, addr = self.socket.accept()
         print_message("Connection from {}:{}".format(*addr))
@@ -93,16 +96,21 @@ class TransportReverseTcp (Transport,ModuleBase):
 
         self.conn.send(data)
 
-    def receive(self):
+    def receive(self, leng=1024):
         if not self.conn:
             print_error("Connection not open")
             return
 
-        data = self.conn.recv(1024)
+        data = self.conn.recv(leng)
         if not data:
             print_error("Connection closed by peer")
             self.close()
         return data
+
+    def upgradefromstager(self):
+        # TODO stager upgraden statt verbindung zu erneuern
+        self.close()
+        self.open(staged=False)
 
     def close(self):
         if not self.conn:
