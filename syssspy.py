@@ -14,8 +14,8 @@ handler = Handler()
 #handler.setoption("TRANSPORT", "TEST")
 #handler.setoption("BLUB", "TEST")
 
-#handler.setoption("STAGEENCODING", "TRUE") # is default
-handler.setoption("STAGEENCODINGKEY", "A")
+#handler.setoption("STAGEENCODING", "FALSE")
+#handler.setoption("STAGEAUTHENTICATION", "FALSE")
 handler.setoption("LHOST", "10.201.1.83")
 
 handler.generatestager()

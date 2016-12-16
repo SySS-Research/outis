@@ -84,7 +84,7 @@ class Handler(ModuleBase):
 
         # if staging is active, provide stager when first conntact        
         if self.platform.isstaged():
-            agent = bytes(self.platform.getagent(self), 'utf-8')
+            agent = self.platform.getagent(self)
             print_message("Sending staged agent ({} bytes)...".format(len(agent)))
             self.transport.send(agent)
             self.transport.upgradefromstager()

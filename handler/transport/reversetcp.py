@@ -108,7 +108,7 @@ class TransportReverseTcp (Transport,ModuleBase):
         return data
 
     def upgradefromstager(self):
-        # TODO stager upgraden statt verbindung zu erneuern
+        # TODO upgrade stager instead of reopening connection
         self.close()
         self.open(staged=False)
 
