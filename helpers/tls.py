@@ -1,6 +1,5 @@
 
 import OpenSSL
-import hashlib
 
 from helpers.log import print_error
 
@@ -41,13 +40,6 @@ def create_signature(pkey, data, digest='sha512'):
     except Exception as e:
         print_error("Signature creation failed: {}".format(e))
         return None
-
-def sha512(data):
-    if not data:
-        return None
-    h = hashlib.new('sha512')
-    h.update(data)
-    return h.hexdigest()
 
 def int2bytes(i, byteorder='big'):
     return i.to_bytes((i.bit_length() + 7) // 8, byteorder=byteorder)
