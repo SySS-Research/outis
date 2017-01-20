@@ -1,7 +1,7 @@
 
 from .transport import Transport
 from helpers.log import print_message, print_error
-import socket
+import socket, ssl
 from helpers.modulebase import ModuleBase
 
 class TransportReverseTcp (Transport,ModuleBase):
@@ -111,6 +111,14 @@ class TransportReverseTcp (Transport,ModuleBase):
         # TODO upgrade stager instead of reopening connection
         self.close()
         self.open(staged=False)
+
+    def upgradetotls(self):
+        # TODO: newer TLS version?
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        # TODO: load the certificate from the correct option path
+        context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
+        self.conn = context.wrap_socket(self.conn, server_side=True)
+        print_message("Upgrade to TLS done")
 
     def close(self):
         if not self.conn:

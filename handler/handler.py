@@ -5,6 +5,7 @@ from .message.message import Message
 from platform.powershell.powershell import PlatformPowershell
 from helpers.log import *
 from helpers.modulebase import ModuleBase
+import ssl
 
 class Handler(ModuleBase):
     """ Base handler for all interactions with agents """
@@ -21,6 +22,12 @@ class Handler(ModuleBase):
                 'Value'         :   "REVERSETCP",
                 'Options'       :   ("REVERSETCP",)
             },
+            'CHANNELENCRYPTION' : {
+                'Description'   :   'Encryption Protocol in the transport',
+                'Required'      :   True,
+                'Value'         :   "TLS",
+                'Options'       :   ("NONE","TLS")
+            },
             'PLATFORM' : {
                 'Description'   :   'Platform of agent code',
                 'Required'      :   True,
@@ -29,6 +36,7 @@ class Handler(ModuleBase):
             }
         }
         self.transport = TransportReverseTcp()
+        #TODO: CHANNELENCRYPTION?
         self.platform = PlatformPowershell()
     
     def setoption(self, name, value):
@@ -88,6 +96,10 @@ class Handler(ModuleBase):
             print_message("Sending staged agent ({} bytes)...".format(len(agent)))
             self.transport.send(agent)
             self.transport.upgradefromstager()
+
+        # if channel encryption, now is the time!
+        if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
+            self.transport.upgradetotls()
 
         message0 = Message()
         message0.create(0x01, b'Test0')

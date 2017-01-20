@@ -16,6 +16,9 @@ class Transport:
 
     def upgradefromstager(self):
         raise NotImplementedError("Transport.upgradefromstager should have been implemented by transport module")
+
+    def upgradetotls(self):
+        raise NotImplementedError("Transport.upgradetotls should have been implemented by transport module")
     
     def close(self):
         raise NotImplementedError("Transport.close should have been implemented by transport module")

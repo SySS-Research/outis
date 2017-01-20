@@ -15,7 +15,6 @@ MAX_AGENT_LEN = 10240 # TODO: choose shorter value, when done writing agent => f
 SIGNATURE_ALGO = "SHA512"
 SIGNATURE_LEN = 512
 SIGNATURE_LEN_B64 = encryption.lenofb64coding(SIGNATURE_LEN)
-STATIC_SIGN_STRING = "syssspy"
 
 
 class PlatformPowershell(Platform, ModuleBase):
@@ -223,7 +222,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
                 # verify the public key
                 stager += '$sha=New-Object Security.Cryptography.SHA512Managed;'
-                stager += 'if(@(Compare-Object $sha.ComputeHash($pk.ToCharArray()) ([Convert]::FromBase64String($fp)) -SyncWindow 0).Length -ne 0){{"ERROR1";Exit(1)}};'.format(STATIC_SIGN_STRING, SIGNATURE_ALGO) # check fingerprint of server cert
+                stager += 'if(@(Compare-Object $sha.ComputeHash($pk.ToCharArray()) ([Convert]::FromBase64String($fp)) -SyncWindow 0).Length -ne 0){"ERROR1";Exit(1)};' # check fingerprint of server cert
 
                 # verify the signature of the code using the public key
                 stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider;'
@@ -263,6 +262,20 @@ class PlatformPowershell(Platform, ModuleBase):
         agent += f.read()
         f.close()
 
+        # add selected channel encryption method
+        if handler.options['CHANNELENCRYPTION']['Value'] == "NONE":
+            pass # no encryption needed
+
+        elif handler.options['CHANNELENCRYPTION']['Value'] == "TLS":
+            f = open(self.platformpath + "/transport/tls.ps1", 'r')
+            agent += f.read()
+            f.close()
+
+        # combination platform / channel encryption currently not supported 
+        else:
+            print_error("No agent module for platform and channel encryption found.")
+            return None
+
         # add message basics
         f = open(self.platformpath + "/message/message.ps1", 'r')
         agent += f.read()
@@ -285,7 +298,7 @@ class PlatformPowershell(Platform, ModuleBase):
             port = handler.transport.options['CONNECTPORT']['Value'] or handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
 
-            agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "TCP")
+            agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "REVERSETCP")
             agent = agent.replace('SYREPLACE_CONNECTHOST', str(ip))
             agent = agent.replace('SYREPLACE_CONNECTPORT', str(port))
 
@@ -293,6 +306,9 @@ class PlatformPowershell(Platform, ModuleBase):
         else:
             print_error("No agent module for platform and transport found.")
             return None
+
+        # replace channel encryption property
+        agent = agent.replace('SYREPLACE_CHANNELENCRYPTION', handler.options['CHANNELENCRYPTION']['Value'])
 
         # ok, lets encode the agent
         agent = agent.encode('utf-8')

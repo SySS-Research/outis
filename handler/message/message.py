@@ -26,7 +26,12 @@ class Message:
             print_error(str(transport)+" is not a transport")
             return
         
-        buf = transport.receive(leng=MESSAGE_HEADER_LEN)
+        buf = b''
+        while len(buf) < MESSAGE_HEADER_LEN:
+            morebuf = transport.receive(leng=MESSAGE_HEADER_LEN-len(buf))
+            if not morebuf:
+                break
+            buf += morebuf
         if not buf:
             print_error("Invalid empty message")
             return
