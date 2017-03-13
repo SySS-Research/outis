@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-
+from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message
 from platform.powershell.powershell import PlatformPowershell
@@ -20,7 +20,7 @@ class Handler(ModuleBase):
                 'Description'   :   'Communication way between agent and handler',
                 'Required'      :   True,
                 'Value'         :   "REVERSETCP",
-                'Options'       :   ("REVERSETCP",)
+                'Options'       :   ("REVERSETCP","DNS")
             },
             'CHANNELENCRYPTION' : {
                 'Description'   :   'Encryption Protocol in the transport',
@@ -46,7 +46,14 @@ class Handler(ModuleBase):
         """
         
         if ModuleBase.setoption(self, name, value):
-            # TODO: change self.transport or self.platform here
+            if str(name).upper() == "TRANSPORT":
+                if str(value).upper() == "REVERSETCP":
+                    self.transport = TransportReverseTcp()
+                elif str(value).upper() == "DNS":
+                    self.transport = TransportDns()
+            if str(name).upper() == "PLATFORM":
+                if str(value).upper() == "POWERSHELL":
+                    self.transport = PlatformPowershell()
             return True
         elif self.transport and self.transport.setoption(name, value):
             return True
