@@ -1,7 +1,7 @@
-
+from helpers.files import sanatizefilename
 from helpers.log import *
 import helpers.strings as helps
-import helpers.encryption as encryption
+import helpers.encoding as encryption
 import helpers.tls
 from ..platform import Platform
 from helpers.modulebase import ModuleBase
@@ -49,7 +49,7 @@ class PlatformPowershell(Platform, ModuleBase):
             'STAGECERTIFICATEFILE' : {
                 'Description'   :   'File path of a PEM with both RSA key and certificate to sign and verify staged agent with (you can generate a selfsigned cert by using the script gencert.sh initially)',
                 'Required'      :   False,
-                'Value'         :   "./data/syssspy.pem"
+                'Value'         :   "$TOOLPATH/data/syssspy.pem"
             }
         }
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
@@ -81,6 +81,8 @@ class PlatformPowershell(Platform, ModuleBase):
         validate the certificate file path for existance and if it can be loaded as certificate
         """
 
+        filename = sanatizefilename(filename)
+
         if not os.path.isfile(filename):
             print_error("{} at {} does not exist".format(name, os.path.realpath(filename)))
             return False
@@ -94,6 +96,8 @@ class PlatformPowershell(Platform, ModuleBase):
         """
         try to load the certificate file
         """
+
+        filename = sanatizefilename(filename)
 
         if helpers.tls.load_certificate(filename) and helpers.tls.load_privatekey(filename):
             return True
@@ -136,11 +140,13 @@ class PlatformPowershell(Platform, ModuleBase):
         if self.privatekey and self.fingerprint and self.certificate and self.publickeyxml:
             return # all set up
 
-        self.privatekey = helpers.tls.load_privatekey(self.options['STAGECERTIFICATEFILE']['Value'])
+        filename = sanatizefilename(self.options['STAGECERTIFICATEFILE']['Value'])
+
+        self.privatekey = helpers.tls.load_privatekey(filename)
         if not self.privatekey:
             print_error("Failed to load privatekey, please check STAGECERTIFICATEFILE")
             return
-        self.certificate = helpers.tls.load_certificate(self.options['STAGECERTIFICATEFILE']['Value'])
+        self.certificate = helpers.tls.load_certificate(filename)
         if not self.certificate:
             print_error("Failed to load certificate, please check STAGECERTIFICATEFILE")
             return
@@ -238,6 +244,10 @@ class PlatformPowershell(Platform, ModuleBase):
             print_debug(DEBUG_MODULE, "stager = {}".format(stager))
             return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
 
+        elif handler.options['TRANSPORT']['Value'] == "DNS":
+            # TODO: implement stager for Powershell and DNS here!
+            return "NO STAGER"
+
         # combination platform / transport currently not supported 
         else:
             print_error("No stager for platform and transport found.")
@@ -301,6 +311,10 @@ class PlatformPowershell(Platform, ModuleBase):
             agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "REVERSETCP")
             agent = agent.replace('SYREPLACE_CONNECTHOST', str(ip))
             agent = agent.replace('SYREPLACE_CONNECTPORT', str(port))
+
+        elif handler.options['TRANSPORT']['Value'] == "DNS":
+            # TODO: implement agent for Powershell and DNS here!
+            return "NO AGENT"
 
         # combination platform / transport currently not supported 
         else:

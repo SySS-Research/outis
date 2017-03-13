@@ -25,3 +25,22 @@ def sha512(data):
     h = hashlib.new('sha512')
     h.update(data)
     return h.digest()
+
+def dnsdecode(data):
+    """
+    decodes DNS transmittable hostname data, 0-9A-Z, ignoring casing
+    :param data: DNS transmittable hostname data
+    :return: decoded form
+    """
+
+    return base64.b16decode(data, casefold=True)
+
+def dnsencode(data):
+    """
+    encodes data in a DNS transmittable hostname form, 0-9A-Z, no lowercase
+    :param data: data to encode
+    :return: encoded form
+    """
+
+    return base64.b16encode(data)
+

