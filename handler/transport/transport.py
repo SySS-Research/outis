@@ -2,7 +2,8 @@
 class Transport:
     """ Transport: abstract way for communication between agent and handler """
 
-    def __init__(self):
+    # noinspection PyUnusedLocal
+    def __init__(self, handler):
         raise NotImplementedError("Transport.init should have been implemented by transport module")
     
     def open(self, staged=False):

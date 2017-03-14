@@ -2,7 +2,8 @@
 class Platform:
     """ Platform: abstract platform of the agent """
 
-    def __init__(self):
+    # noinspection PyUnusedLocal
+    def __init__(self, handler):
         raise NotImplementedError("Platform.init should have been implemented by platform module")
 
     def isstaged(self):
@@ -12,9 +13,8 @@ class Platform:
 
         return False
     
-    def getstager(self, handler):
+    def getstager(self):
         raise NotImplementedError("Platform.getstager should have been implemented by platform module")
 
-    def getagent(self, handler):
+    def getagent(self):
         raise NotImplementedError("Platform.getagent should have been implemented by platform module")
-

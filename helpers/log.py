@@ -1,8 +1,8 @@
 
 DEBUG_MODULES = [
     "Message Parse", "Message Create",
-    "PlatformPowershell",
-    "Main",
+    "PlatformPowershell", "PlatformDnsCat2Wrapper",
+    "Main", "Handler",
     "TransportDns"
 ]
 

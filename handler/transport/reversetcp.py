@@ -8,7 +8,7 @@ class TransportReverseTcp (Transport,ModuleBase):
     """ opens a tcp listener and allows connections from agents """
 
     # noinspection PyMissingConstructor
-    def __init__(self):
+    def __init__(self, handler):
         self.options = {
             'LHOST' : {
                 'Description'   :   'Interface IP to listen on',
@@ -31,6 +31,7 @@ class TransportReverseTcp (Transport,ModuleBase):
                 'Value'         :   None
             }
         }
+        self.handler = handler
         self.conn = None
         self.socket = None
         self.staged = False
@@ -52,7 +53,8 @@ class TransportReverseTcp (Transport,ModuleBase):
 
         return ModuleBase.setoption(self, name, value)
 
-    def _validate_port(self, name, port):
+    @staticmethod
+    def _validate_port(name, port):
         """
         checks whether the port value is plausible
         :param name: name of the option, to use in messages
@@ -127,6 +129,7 @@ class TransportReverseTcp (Transport,ModuleBase):
 
     def upgradetotls(self):
         # TODO: newer TLS version?
+        # noinspection PyUnresolvedReferences
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         # TODO: load the certificate from the correct option path
         context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")

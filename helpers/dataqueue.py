@@ -41,3 +41,12 @@ class DataQueue:
         """
 
         return len(self.queue) > 0
+
+    def length(self):
+        """
+        returns the length of the data in the queue
+        :return: length of the data in the queue
+        """
+
+        return len(self.queue)
+

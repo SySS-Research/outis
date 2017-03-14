@@ -10,8 +10,8 @@ def random_string(length=-1, charset=string.ascii_letters):
     """
 
     if length == -1: length = random.randrange(6,16)
-    random_string = ''.join(random.choice(charset) for _ in range(length))
-    return random_string
+    rand_string = ''.join(random.choice(charset) for _ in range(length))
+    return rand_string
 
 def randomize_capitalization(data):
     """
@@ -37,6 +37,8 @@ def powershell_launcher(raw, baseCmd="powershell.exe -NoP -sta -NonI -W Hidden -
 
     return baseCmd + encCMD
 
+
+# noinspection PyTypeChecker
 def strip_powershell_comments(data):
     """
     Strip block comments, line comments, empty lines, verbose statements,

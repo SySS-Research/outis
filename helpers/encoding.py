@@ -19,6 +19,18 @@ def lenofb64coding(initlen):
     while x % 3 > 0: x += 1
     return x
 
+def lenofb64decoded(initlen):
+    """
+    Calculates the length of a Base64 decoded form of the initial length of Base64 encoded data
+    :param initlen: length of a Base64 encoded string
+    :return: length of maximal decoded content for that lenght
+    """
+
+    while initlen % 3 > 0: initlen -= 1
+    x = math.ceil(initlen * 3 // 4)
+    return x
+
+
 def sha512(data):
     if not data:
         return None
@@ -37,10 +49,11 @@ def dnsdecode(data):
 
 def dnsencode(data):
     """
-    encodes data in a DNS transmittable hostname form, 0-9A-Z, no lowercase
+    encodes data in a DNS transmittable TXT form, so we use base64 for now
     :param data: data to encode
     :return: encoded form
     """
 
-    return base64.b16encode(data)
+    return base64.b64encode(data)
+
 

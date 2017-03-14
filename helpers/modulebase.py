@@ -21,10 +21,10 @@ class ModuleBase:
         """
         
         # name and value must be set and must be string
-        if not(name) or not(isinstance(name, str)):
+        if not name or not isinstance(name, str):
             print_error("Option name not understood")
             return False
-        if not(value) or not(isinstance(value, str)):
+        if not value or not isinstance(value, str):
             print_error("Option value not understood")
             return False
 

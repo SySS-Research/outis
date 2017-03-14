@@ -3,24 +3,25 @@ import socketserver
 import binascii
 import threading
 
+import math
+
 from helpers.dataqueue import DataQueue
-from helpers.encoding import dnsdecode, dnsencode
+from helpers.encoding import dnsdecode, dnsencode, lenofb64decoded
 from helpers.types import isportnumber, isint
 from .transport import Transport
 from helpers.log import *
-import socket, ssl
 from helpers.modulebase import ModuleBase
 import dns
 import dns.message
 
 DEBUG_MODULE = "TransportDns"
-MAX_TXT_ENTRY_LEN = 400
+MAX_TXT_ENTRY_LEN = 250
 
 class TransportDns (Transport,ModuleBase):
     """ allows and handles DNS query based connections """
 
     # noinspection PyMissingConstructor
-    def __init__(self):
+    def __init__(self, handler):
         self.options = {
             'ZONE' : {
                 'Description'   :   'DNS Zone for handling requests',
@@ -28,9 +29,9 @@ class TransportDns (Transport,ModuleBase):
                 'Value'         :   None
             },
             'LHOST': {
-                'Description': 'Interface IP to listen on',
-                'Required': True,
-                'Value': "0.0.0.0"
+                'Description'   :   'Interface IP to listen on',
+                'Required'      :   True,
+                'Value'         :   "0.0.0.0"
             },
             'LPORT' : {
                 'Description'   :   'UDP-Port to listen on for DNS server',
@@ -38,12 +39,18 @@ class TransportDns (Transport,ModuleBase):
                 'Value'         :   "53"
             },
             'DNSTYPE': {
-                'Description': 'DNS type to use for the connection',
-                'Required': True,
-                'Value': "TXT",
-                'Options': ("TXT",) # TODO: add and prefer A type
+                'Description'   :   'DNS type to use for the connection',
+                'Required'      :   True,
+                'Value'         :   "TXT",
+                'Options'       :   ("TXT",)  # TODO: add and prefer A type
+            },
+            'DNSSERVER': {  # TODO: implement!!!
+                'Description'   :   'IP address of DNS server to connect for all queries',
+                'Required'      :   False,
+                'Value'         :   None
             }
         }
+        self.handler = handler
         self.server = None
         self.staged = False
         self.currentstagenum = 0
@@ -58,7 +65,7 @@ class TransportDns (Transport,ModuleBase):
         :return: True iff the value was found, not necessary set!
         """
 
-        # TODO: check interface ip LHOST
+        # TODO: check interface ip and DNSSERVER
 
         if name.upper() == "ZONE" and not(self._validate_zone("ZONE",value)):
             return True # value found, but not set
@@ -71,7 +78,8 @@ class TransportDns (Transport,ModuleBase):
 
         return ModuleBase.setoption(self, name, value)
 
-    def _validate_zone(self, name, zone):
+    @staticmethod
+    def _validate_zone(name, zone):
         """
         validates whether DNS zone is plausible
         :param name: name of the option field, used for outputs
@@ -87,7 +95,8 @@ class TransportDns (Transport,ModuleBase):
         else:
             return True
 
-    def _validate_port(self, name, port):
+    @staticmethod
+    def _validate_port(name, port):
         """
         checks whether the port value is plausible
         :param name: name of the option, to use in messages
@@ -108,7 +117,7 @@ class TransportDns (Transport,ModuleBase):
         
         valid = ModuleBase.validate_options(self)
 
-        # TODO: check interface ip LHOST
+        # TODO: check interface ip LHOST and DNSSERVER
 
         port = self.options['LPORT']['Value']
         if port and not(self._validate_port('LPORT', port)):
@@ -237,7 +246,13 @@ class TransportDns (Transport,ModuleBase):
             print_debug(DEBUG_MODULE, "out of stager data do send")
             return None # end of data to send / stager code
 
-        nextdata = self.senddataqueue.get(MAX_TXT_ENTRY_LEN//2)  # encoding adds factor 2 TODO: but what is it?
+        # TODO: change for non Base64 encoding schemes
+        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)
+
+        nextdata = self.senddataqueue.get(maxlendata)
+        print_message("Sending staged agent part {}, there are {} more parts".format(
+            self.currentstagenum, math.ceil(self.senddataqueue.length() / maxlendata)))
+        self.currentstagenum += 1
         return nextdata
 
 
@@ -291,7 +306,8 @@ class DnsHandler(socketserver.BaseRequestHandler):
         except binascii.Error:
             return None
 
-    def _encode_response(self, rdata):
+    @staticmethod
+    def _encode_response(rdata):
         """
         encodes the response data to a form we can include in a DNS response
         :param rdata: data to include
@@ -318,10 +334,14 @@ class DnsHandler(socketserver.BaseRequestHandler):
         :return: None
         """
 
-        data = self.request[0].strip()
+        data = self.request[0]
         socket = self.request[1]
 
-        msg = dns.message.from_wire(data)
+        try:
+            msg = dns.message.from_wire(data)
+        except Exception as e:
+            print_error("invalid DNS message ({}): {}".format(str(e), data))
+            return
 
         if msg.opcode() != 0: # not a query
             print_error("invalid DNS request received: "+str(msg))
@@ -337,7 +357,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
                 continue
 
             qtext = self._decode_query(q.name)
-            if qtext == None:
+            if qtext is None:
                 print_error("decoding failed for query: " + str(q))
                 continue
 
