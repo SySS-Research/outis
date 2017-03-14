@@ -250,7 +250,7 @@ class TransportDns (Transport,ModuleBase):
         maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)
 
         nextdata = self.senddataqueue.get(maxlendata)
-        print_message("Sending staged agent part {}, there are {} more parts".format(
+        print_debug(DEBUG_MODULE, "Sending staged agent part {}, there are {} more parts".format(
             self.currentstagenum, math.ceil(self.senddataqueue.length() / maxlendata)))
         self.currentstagenum += 1
         return nextdata
@@ -348,33 +348,43 @@ class DnsHandler(socketserver.BaseRequestHandler):
             return
 
         for q in msg.question:
+            ptrquery = False
+
             print_debug(DEBUG_MODULE, "query from {}: {}".format(self.client_address[0], str(q)))
+
             if "IN PTR" in str(q):
-                print_error("ignoring PTR query " + str(q))
-                continue
-            if not self._is_in_zone(q.name):
+                ptrquery = True
+                qtext = str(q.name)
+
+            elif not self._is_in_zone(q.name):
                 print_error("ignoring query outsite of our zone: " + str(q))
                 continue
 
-            qtext = self._decode_query(q.name)
-            if qtext is None:
-                print_error("decoding failed for query: " + str(q))
-                continue
-
-            print_debug(DEBUG_MODULE, "decoded qtext = {}".format(qtext))
+            else:
+                qtext = self._decode_query(q.name)
+                if qtext is None:
+                    print_error("decoding failed for query: " + str(q))
+                    continue
+                print_debug(DEBUG_MODULE, "decoded qtext = {}".format(qtext))
 
             resp = dns.message.make_response(msg)
             resp.flags |= dns.flags.AA
             resp.set_rcode(0)
             if resp:
-                data = self._get_response(qtext)
-                if data:
-                    print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                    data = self._encode_response(data)
-                    resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
-                    socket.sendto(resp.to_wire(), self.client_address)
+                if not ptrquery:
+                    data = self._get_response(qtext)
+                    if data:
+                        print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
+                        data = self._encode_response(data)
+                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
+                        socket.sendto(resp.to_wire(), self.client_address)
+                    else:
+                        print_debug(DEBUG_MODULE, "no data to respond, ignoring query")
                 else:
-                    print_debug(DEBUG_MODULE, "no data to respond, ignoring query")
+                    data = self.zone + '.' # absolute name, dot is needed here!
+                    print_debug(DEBUG_MODULE, "responding to PTR query with zone: {}".format(data))
+                    resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.PTR, data))
+                    socket.sendto(resp.to_wire(), self.client_address)
             else:
                 print_error("error creating response for DNS query: " + msg)
                 return

