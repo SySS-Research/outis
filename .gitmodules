@@ -1,0 +1,3 @@
+[submodule "thirdpartytools/dnscat2-powershell"]
+	path = thirdpartytools/dnscat2-powershell
+	url = https://github.com/lukebaggett/dnscat2-powershell

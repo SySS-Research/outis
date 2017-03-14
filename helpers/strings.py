@@ -10,7 +10,7 @@ def random_string(length=-1, charset=string.ascii_letters):
     """
 
     if length == -1: length = random.randrange(6,16)
-    random_string = ''.join(random.choice(charset) for x in range(length))
+    random_string = ''.join(random.choice(charset) for _ in range(length))
     return random_string
 
 def randomize_capitalization(data):

@@ -40,6 +40,5 @@ class Transport:
         wrapper for Message.sendToTransport
         """
 
-        from ..message.message import Message
         message.sendToTransport(self)
 

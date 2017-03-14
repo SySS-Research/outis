@@ -22,6 +22,7 @@ class PlatformPowershell(Platform, ModuleBase):
     platform code to provide a stager and an agent generator for powershell
     """
 
+    # noinspection PyMissingConstructor
     def __init__(self):
         """
         powershell plattform code
@@ -265,6 +266,10 @@ class PlatformPowershell(Platform, ModuleBase):
         if handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             f = open(self.platformpath + "/transport/reversetcp.ps1", 'r')
 
+        elif handler.options['TRANSPORT']['Value'] == "DNS":
+            # TODO: implement agent for Powershell and DNS here!
+            return b"NO AGENT"
+
         # combination platform / transport currently not supported 
         else:
             print_error("No agent module for platform and transport found.")
@@ -314,7 +319,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
         elif handler.options['TRANSPORT']['Value'] == "DNS":
             # TODO: implement agent for Powershell and DNS here!
-            return "NO AGENT"
+            return b"NO AGENT"
 
         # combination platform / transport currently not supported 
         else:

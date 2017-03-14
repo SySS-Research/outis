@@ -7,7 +7,8 @@ from helpers.modulebase import ModuleBase
 class TransportReverseTcp (Transport,ModuleBase):
     """ opens a tcp listener and allows connections from agents """
 
-    def __init__(self, **kwargs):
+    # noinspection PyMissingConstructor
+    def __init__(self):
         self.options = {
             'LHOST' : {
                 'Description'   :   'Interface IP to listen on',

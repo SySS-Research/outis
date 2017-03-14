@@ -5,11 +5,11 @@ from .message.message import Message
 from platform.powershell.powershell import PlatformPowershell
 from helpers.log import *
 from helpers.modulebase import ModuleBase
-import ssl
 
 class Handler(ModuleBase):
     """ Base handler for all interactions with agents """
-    
+
+    # noinspection PyMissingConstructor
     def __init__(self):
         """
         Initialize base handler
@@ -95,28 +95,32 @@ class Handler(ModuleBase):
         if not self.validate_options():
             return
 
-        self.transport.open(staged=self.platform.isstaged())
+        try:
+            self.transport.open(staged=self.platform.isstaged())
 
-        # if staging is active, provide stager when first conntact        
-        if self.platform.isstaged():
-            agent = self.platform.getagent(self)
-            print_message("Sending staged agent ({} bytes)...".format(len(agent)))
-            self.transport.send(agent)
-            self.transport.upgradefromstager()
+            # if staging is active, provide stager when first conntact
+            if self.platform.isstaged():
+                agent = self.platform.getagent(self)
+                print_message("Sending staged agent ({} bytes)...".format(len(agent)))
+                self.transport.send(agent)
+                self.transport.upgradefromstager()
 
-        # if channel encryption, now is the time!
-        if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
-            self.transport.upgradetotls()
+            # if channel encryption, now is the time!
+            if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
+                self.transport.upgradetotls()
 
-        message0 = Message()
-        message0.create(0x01, b'Test0')
-        self.transport.sendmessage(message0)
+            message0 = Message()
+            message0.create(0x01, b'Test0')
+            self.transport.sendmessage(message0)
 
-        message1 = self.transport.receivemessage()
+            message1 = self.transport.receivemessage()
 
-        message2 = Message()
-        message2.create(0x01, b'TestBack')
-        self.transport.sendmessage(message1)
+            message2 = Message()
+            message2.create(0x01, b'TestBack')
+            self.transport.sendmessage(message1)
 
-        self.transport.close()
+        except KeyboardInterrupt:
+            print_error("User interrupt, exiting...")
 
+        finally:
+            self.transport.close()

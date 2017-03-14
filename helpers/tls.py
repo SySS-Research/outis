@@ -5,24 +5,26 @@ from helpers.log import print_error
 
 def load_certificate(filename):
     cert = None
+    f = None
     try:
-        f = open(filename)
+        f = open(filename, 'rb')
         cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, f.read())
     except Exception as e:
         print_error("Loading certificate file failed: {}".format(e))
     finally:
-        f.close()
+        if f: f.close()
     return cert
 
 def load_privatekey(filename):
     pkey = None
+    f = None
     try:
         f = open(filename)
         pkey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, f.read())
     except Exception as e:
         print_error("Loading certificate file failed: {}".format(e))
     finally:
-        f.close()
+        if f: f.close()
     return pkey
 
 def verify_signature(cert, signature, data, digest='sha512'):
