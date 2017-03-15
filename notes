@@ -1,15 +1,4 @@
 
-= SySS Spy =
-
-Ein Meterpreter / Empire Agent / ... Clon
-
-
-= Terminologie =
-
- * Agent: Software, die auf dem Opfer-System aktiv ist
- * Handler: Software, die Kommandos des Angreifers entgegennimmt und den Agenten "führt" (läuft meist auf einem Angreifer-System, kann aber auch auf dem Opfer-System leben, wenn man will)
- * Stager: Kurzer Schnipsel, der den Agenten bezieht und aktiviert
- * Transport: Kommunikationsweg zwischen Handler und Agent
 
 
 = Stager =
