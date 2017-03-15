@@ -1,9 +1,9 @@
 
 DEBUG_MODULES = [
     "Message Parse", "Message Create",
-    "PlatformPowershell", "PlatformDnsCat2Wrapper",
+    "PlatformPowershell",
     "Main", "Handler",
-    "TransportDns"
+#    "TransportDns"
 ]
 
 def print_error(text):

@@ -48,6 +48,12 @@ class TransportDns (Transport,ModuleBase):
                 'Description'   :   'IP address of DNS server to connect for all queries',
                 'Required'      :   False,
                 'Value'         :   None
+            },
+            'PROGRESSBAR': {
+                'Description'   :   'Display a progressbar for uploading the staged agent? (only if not debugging this module)',
+                'Required'      :   True,
+                'Value'         :   "TRUE",
+                'Options'       :   ("TRUE","FALSE")
             }
         }
         self.handler = handler
@@ -56,6 +62,8 @@ class TransportDns (Transport,ModuleBase):
         self.currentstagenum = 0
         self.senddataqueue = DataQueue()
         self.recvdataqueue = DataQueue()
+        self.progress = None
+        self.maxstagenum = None
     
     def setoption(self, name, value):
         """
@@ -240,18 +248,32 @@ class TransportDns (Transport,ModuleBase):
         if self.currentstagenum != stagepartnum:
             print_debug(DEBUG_MODULE, "request for different stager part number, expected: {}, received: {}".format(
                 self.currentstagenum, stagepartnum))
-            return None # do not answer more than once
+            return None  # do not answer more than once
 
         if not self.senddataqueue.has_data():
             print_debug(DEBUG_MODULE, "out of stager data do send")
-            return None # end of data to send / stager code
+            return None  # end of data to send / stager code
 
-        # TODO: change for non Base64 encoding schemes
-        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)
+        # calculate lenght and maximal stage number
+        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)  # TODO: change for non Base64 encoding schemes
+        if self.maxstagenum is None:
+            self.maxstagenum = math.ceil(self.senddataqueue.length() / maxlendata) - 1
 
+        # create progress bar if selected
+        if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" and DEBUG_MODULE not in DEBUG_MODULES:
+            import progressbar
+            self.progress = progressbar.ProgressBar(0, self.maxstagenum)
+
+        # print progress either in debug line or as progressbar (if selected)
+        if DEBUG_MODULE in DEBUG_MODULES:
+            print_debug(DEBUG_MODULE, "Sending staged agent part {} of {}".format(self.currentstagenum, self.maxstagenum))
+        elif self.progress is not None:
+            self.progress.update(self.currentstagenum)
+            if self.currentstagenum == self.maxstagenum:
+                print()
+
+        # return next data segment and increase segment counter
         nextdata = self.senddataqueue.get(maxlendata)
-        print_debug(DEBUG_MODULE, "Sending staged agent part {}, there are {} more parts".format(
-            self.currentstagenum, math.ceil(self.senddataqueue.length() / maxlendata)))
         self.currentstagenum += 1
         return nextdata
 
@@ -374,8 +396,8 @@ class DnsHandler(socketserver.BaseRequestHandler):
                 if not ptrquery:
                     data = self._get_response(qtext)
                     if data:
-                        print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
                         data = self._encode_response(data)
+                        print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
                         resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
                         socket.sendto(resp.to_wire(), self.client_address)
                     else:

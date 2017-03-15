@@ -6,7 +6,6 @@ from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message
 from platform.powershell.powershell import PlatformPowershell
-from platform.dnscat2wrapper.dnscat2wrapper import PlatformDnsCat2Wrapper
 from helpers.log import *
 from helpers.modulebase import ModuleBase
 
@@ -38,7 +37,7 @@ class Handler(ModuleBase):
                 'Description'   :   'Platform of agent code',
                 'Required'      :   True,
                 'Value'         :   "POWERSHELL",
-                'Options'       :   ("POWERSHELL","DNSCAT2WRAPPER")
+                'Options'       :   ("POWERSHELL",)
             }
         }
         self.transport = TransportReverseTcp(self)
@@ -64,9 +63,6 @@ class Handler(ModuleBase):
                 if str(value).upper() == "POWERSHELL":
                     print_debug(DEBUG_MODULE, "changing PLATFORM to POWERSHELL")
                     self.platform = PlatformPowershell(self)
-                if str(value).upper() == "DNSCAT2WRAPPER":
-                    print_debug(DEBUG_MODULE, "changing PLATFORM to DNSCAT2WRAPPER")
-                    self.platform = PlatformDnsCat2Wrapper(self)
             return True
         elif self.transport and self.transport.setoption(name, value):
             return True
@@ -122,7 +118,7 @@ class Handler(ModuleBase):
                 print_message("Staging done")
 
             # special case handling for our hacked DNSCAT2WRAPPER
-            if self.options['PLATFORM']['Value'] != "DNSCAT2WRAPPER":
+            if self.platform.options['AGENTTYPE']['Value'] != "DNSCAT2":
 
                 # if channel encryption, now is the time!
                 if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
@@ -146,10 +142,10 @@ class Handler(ModuleBase):
             self.transport.close()
 
         # special case handling for our hacked DNSCAT2WRAPPER
-        if self.options['PLATFORM']['Value'] == "DNSCAT2WRAPPER" and not exiting:
+        if self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2":
             print_message("Starting dnscat2 to handle the real connection")
             zone = self.transport.options['ZONE']['Value'].rstrip(".")
-            secret = self.platform.secret
+            secret = self.platform.fingerprint
             print_debug(DEBUG_MODULE, "zone = {}, secret = {}".format(zone, secret))
 
             ruby = "/usr/bin/ruby"

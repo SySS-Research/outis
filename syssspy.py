@@ -8,10 +8,11 @@ from handler.handler import Handler
 
 handler = Handler()
 
-handler.setoption("PLATFORM", "DNSCAT2WRAPPER")
+handler.setoption("PLATFORM", "POWERSHELL")
+handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("LHOST", "127.0.0.1")
 #handler.setoption("LPORT", "0")
-handler.setoption("TRANSPORT", "DNS")
+handler.setoption("AGENTTYPE", "DNSCAT2")
 handler.setoption("ZONE", "zfs.sy.gs")
 handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("LPORT", "5000")
