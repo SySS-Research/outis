@@ -1,6 +1,7 @@
 
 from helpers.log import print_error
 
+
 class ModuleBase:
     """
     Base class for all modules (handler, transport, platform, ...)
@@ -36,7 +37,7 @@ class ModuleBase:
             # if it is an option with fixed values, check whether the value matches
             if 'Options' in values and values['Options'] and not(value.upper() in values['Options']):
                 print_error(str(name.upper())+" must be one of "+(", ".join(values['Options'])))
-                return True # ok, strange, but True only means we found it, even if setting failed
+                return True  # ok, strange, but True only means we found it, even if setting failed
             elif 'Options' in values and values['Options']:
                 # and if so, set the value to upper case
                 value = value.upper()
@@ -58,7 +59,7 @@ class ModuleBase:
         valid = True
 
         # check for each option
-        for option,values in self.options.items():
+        for option, values in self.options.items():
             # make sure all options are set
             if values['Required'] and not(values['Value']) or (values['Value'] == ''):
                 print_error(str(option)+" must be set")

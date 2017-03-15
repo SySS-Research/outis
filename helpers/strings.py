@@ -1,6 +1,9 @@
 
-import re, base64, string
+import re
+import base64
+import string
 from Crypto.Random import random
+
 
 def random_string(length=-1, charset=string.ascii_letters):
     """
@@ -9,16 +12,19 @@ def random_string(length=-1, charset=string.ascii_letters):
     A character set can be specified, defaulting to just alpha letters.
     """
 
-    if length == -1: length = random.randrange(6,16)
+    if length == -1:
+        length = random.randrange(6, 16)
     rand_string = ''.join(random.choice(charset) for _ in range(length))
     return rand_string
+
 
 def randomize_capitalization(data):
     """
     Randomize the capitalization of a string.
     """
 
-    return "".join( random.choice([k.upper(), k ]) for k in data )
+    return "".join(random.choice([k.upper(), k]) for k in data)
+
 
 def enc_powershell(raw):
     """
@@ -26,6 +32,7 @@ def enc_powershell(raw):
     """
 
     return base64.b64encode(b"".join([bytes([char]) + b"\x00" for char in bytes(raw, 'utf-8')])).decode("utf-8")
+
 
 def powershell_launcher(raw, baseCmd="powershell.exe -NoP -sta -NonI -W Hidden -Enc "):
     """
@@ -49,6 +56,9 @@ def strip_powershell_comments(data):
     strippedCode = re.sub(re.compile('<#.*?#>', re.DOTALL), '', data)
 
     # strip blank lines, lines starting with #, and verbose/debug statements
-    strippedCode = "\n".join([line for line in strippedCode.split('\n') if ((line.strip() != '') and (not line.strip().startswith("#")) and (not line.strip().lower().startswith("write-verbose ")) and (not line.strip().lower().startswith("write-debug ")) )])
+    # noinspection PyPep8
+    strippedCode = "\n".join([line for line in strippedCode.split('\n') if ((line.strip() != '') and
+        (not line.strip().startswith("#")) and (not line.strip().lower().startswith("write-verbose ")) and
+        (not line.strip().lower().startswith("write-debug ")))])
     
     return strippedCode

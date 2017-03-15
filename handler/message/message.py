@@ -6,6 +6,7 @@ import struct
 MESSAGE_HEADER_LEN = 5
 DEBUG_MODULE = "Message"
 
+
 class Message:
     """
     Message object for the transport communication
@@ -46,7 +47,7 @@ class Message:
         print_debug(DEBUG_MODULE+" Parse", "type: "+str(self.type))
         print_debug(DEBUG_MODULE+" Parse", "length: "+str(self.length))
         while len(buf) < self.length:
-            morebuf = transport.receive(leng=min(1024,self.length))
+            morebuf = transport.receive(leng=min(1024, self.length))
             if not morebuf:
                 print_error("Connection ended before end of message, message so far: "+str(buf))
                 return
@@ -77,5 +78,3 @@ class Message:
         
         buf = struct.pack("!BI", self.type, self.length) + self.content
         transport.send(buf)
-        
-        

@@ -3,6 +3,7 @@ import OpenSSL
 
 from helpers.log import print_error
 
+
 def load_certificate(filename):
     cert = None
     f = None
@@ -12,8 +13,10 @@ def load_certificate(filename):
     except Exception as e:
         print_error("Loading certificate file failed: {}".format(e))
     finally:
-        if f: f.close()
+        if f:
+            f.close()
     return cert
+
 
 def load_privatekey(filename):
     pkey = None
@@ -24,8 +27,10 @@ def load_privatekey(filename):
     except Exception as e:
         print_error("Loading certificate file failed: {}".format(e))
     finally:
-        if f: f.close()
+        if f:
+            f.close()
     return pkey
+
 
 def verify_signature(cert, signature, data, digest='sha512'):
     try:
@@ -35,6 +40,7 @@ def verify_signature(cert, signature, data, digest='sha512'):
         print_error("Signature verification failed: {}".format(e))
         return False
 
+
 def create_signature(pkey, data, digest='sha512'):
     try:
         sig = OpenSSL.crypto.sign(pkey, data, digest)
@@ -42,6 +48,7 @@ def create_signature(pkey, data, digest='sha512'):
     except Exception as e:
         print_error("Signature creation failed: {}".format(e))
         return None
+
 
 def int2bytes(i, byteorder='big'):
     return i.to_bytes((i.bit_length() + 7) // 8, byteorder=byteorder)

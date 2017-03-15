@@ -11,6 +11,7 @@ from helpers.modulebase import ModuleBase
 
 DEBUG_MODULE = "Handler"
 
+
 class Handler(ModuleBase):
     """ Base handler for all interactions with agents """
 
@@ -21,17 +22,17 @@ class Handler(ModuleBase):
         """
 
         self.options = {
-            'TRANSPORT' : {
+            'TRANSPORT': {
                 'Description'   :   'Communication way between agent and handler',
                 'Required'      :   True,
                 'Value'         :   "REVERSETCP",
-                'Options'       :   ("REVERSETCP","DNS")
+                'Options'       :   ("REVERSETCP", "DNS")
             },
             'CHANNELENCRYPTION' : {
                 'Description'   :   'Encryption Protocol in the transport',
                 'Required'      :   True,
                 'Value'         :   "TLS",
-                'Options'       :   ("NONE","TLS")
+                'Options'       :   ("NONE", "TLS")
             },
             'PLATFORM' : {
                 'Description'   :   'Platform of agent code',
@@ -78,7 +79,8 @@ class Handler(ModuleBase):
         The validation succeeds only if all of these modules can be validated.
         """
 
-        return ModuleBase.validate_options(self) and self.transport.validate_options() and self.platform.validate_options()
+        return ModuleBase.validate_options(self) and self.transport.validate_options() and \
+            self.platform.validate_options()
 
     def generatestager(self):
         """
@@ -142,7 +144,7 @@ class Handler(ModuleBase):
             self.transport.close()
 
         # special case handling for our hacked DNSCAT2WRAPPER
-        if self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2":
+        if self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2" and not exiting:
             print_message("Starting dnscat2 to handle the real connection")
             zone = self.transport.options['ZONE']['Value'].rstrip(".")
             secret = self.platform.fingerprint

@@ -1,10 +1,12 @@
 from helpers.types import isportnumber
 from .transport import Transport
 from helpers.log import print_message, print_error
-import socket, ssl
+import socket
+import ssl
 from helpers.modulebase import ModuleBase
 
-class TransportReverseTcp (Transport,ModuleBase):
+
+class TransportReverseTcp (Transport, ModuleBase):
     """ opens a tcp listener and allows connections from agents """
 
     # noinspection PyMissingConstructor
@@ -47,9 +49,9 @@ class TransportReverseTcp (Transport,ModuleBase):
         # TODO: check ips
 
         if name.upper() == "LPORT" and not(self._validate_port("LPORT", value)):
-            return True # value found, but not set
+            return True  # value found, but not set
         if name.upper() == "CONNECTPORT" and not(self._validate_port("CONNECTPORT", value)):
-            return True # value found, but not set
+            return True  # value found, but not set
 
         return ModuleBase.setoption(self, name, value)
 

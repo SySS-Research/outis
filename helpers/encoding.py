@@ -2,13 +2,15 @@ import math
 import hashlib
 import base64
 
-def xor_encode(text,key):
+
+def xor_encode(text, key):
     """
     XOR the given text input with the specified key.
     text must be bytes, key must be string, result is bytes, sorry...
     """
 
-    return b"".join(bytes([ord(x)^y]) for x,y in zip(key*len(text),text))
+    return b"".join(bytes([ord(x) ^ y]) for x, y in zip(key*len(text), text))
+
 
 def lenofb64coding(initlen):
     """
@@ -16,8 +18,10 @@ def lenofb64coding(initlen):
     """
 
     x = math.ceil(initlen * 4 / 3)
-    while x % 3 > 0: x += 1
+    while x % 3 > 0:
+        x += 1
     return x
+
 
 def lenofb64decoded(initlen):
     """
@@ -26,7 +30,8 @@ def lenofb64decoded(initlen):
     :return: length of maximal decoded content for that lenght
     """
 
-    while initlen % 3 > 0: initlen -= 1
+    while initlen % 3 > 0:
+        initlen -= 1
     x = math.ceil(initlen * 3 // 4)
     return x
 
@@ -38,6 +43,7 @@ def sha512(data):
     h.update(data)
     return h.digest()
 
+
 def dnsdecode(data):
     """
     decodes DNS transmittable hostname data, 0-9A-Z, ignoring casing
@@ -46,6 +52,7 @@ def dnsdecode(data):
     """
 
     return base64.b16decode(data, casefold=True)
+
 
 def dnsencode(data):
     """
