@@ -6,8 +6,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3fb45792-add6-46ca-99cc-e82022d3e167" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/transport/dns.py" afterPath="$PROJECT_DIR$/syhandler/transport/dns.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/encoding.py" afterPath="$PROJECT_DIR$/syhelpers/encoding.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/log.py" afterPath="$PROJECT_DIR$/syhelpers/log.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/powershell.py" afterPath="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syssspy.py" afterPath="$PROJECT_DIR$/syssspy.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -22,11 +26,11 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/syssspy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="17" column="33" lean-forward="true" selection-start-line="17" selection-start-column="33" selection-end-line="17" selection-end-column="33" />
+            <state relative-caret-position="240">
+              <caret line="16" column="1" lean-forward="false" selection-start-line="16" selection-start-column="1" selection-end-line="16" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -35,8 +39,8 @@
       <file leaf-file-name="powershell.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="433">
-              <caret line="254" column="46" lean-forward="true" selection-start-line="254" selection-start-column="46" selection-end-line="254" selection-end-column="46" />
+            <state relative-caret-position="298">
+              <caret line="341" column="0" lean-forward="true" selection-start-line="341" selection-start-column="0" selection-end-line="341" selection-end-column="0" />
               <folding>
                 <element signature="e#0#44#0" expanded="true" />
               </folding>
@@ -44,7 +48,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="log.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="log.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syhelpers/log.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="75">
@@ -57,22 +61,10 @@
       <file leaf-file-name="dns.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-797">
-              <caret line="341" column="83" lean-forward="false" selection-start-line="341" selection-start-column="83" selection-end-line="341" selection-end-column="83" />
+            <state relative-caret-position="218">
+              <caret line="262" column="59" lean-forward="false" selection-start-line="262" selection-start-column="59" selection-end-line="262" selection-end-column="59" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="encoding.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="553">
-              <caret line="79" column="20" lean-forward="false" selection-start-line="79" selection-start-column="20" selection-end-line="79" selection-end-column="20" />
-              <folding>
-                <element signature="e#0#11#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -93,6 +85,7 @@
       <find>decoding</find>
       <find>CONNECTHOST</find>
       <find>DNSCAT2</find>
+      <find>out of</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -121,9 +114,9 @@
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/syhelpers/encoding.py" />
         <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
-        <option value="$PROJECT_DIR$/syssspy.py" />
         <option value="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
         <option value="$PROJECT_DIR$/syhelpers/log.py" />
+        <option value="$PROJECT_DIR$/syssspy.py" />
       </list>
     </option>
   </component>
@@ -836,25 +829,17 @@
     <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="553">
-          <caret line="79" column="20" lean-forward="false" selection-start-line="79" selection-start-column="20" selection-end-line="79" selection-end-column="20" />
+          <caret line="77" column="19" lean-forward="true" selection-start-line="77" selection-start-column="19" selection-end-line="77" selection-end-column="19" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/syssspy.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="17" column="33" lean-forward="true" selection-start-line="17" selection-start-column="33" selection-end-line="17" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-797">
-          <caret line="341" column="83" lean-forward="false" selection-start-line="341" selection-start-column="83" selection-end-line="341" selection-end-column="83" />
+        <state relative-caret-position="218">
+          <caret line="262" column="59" lean-forward="false" selection-start-line="262" selection-start-column="59" selection-end-line="262" selection-end-column="59" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
@@ -863,8 +848,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="433">
-          <caret line="254" column="46" lean-forward="true" selection-start-line="254" selection-start-column="46" selection-end-line="254" selection-end-column="46" />
+        <state relative-caret-position="298">
+          <caret line="341" column="0" lean-forward="true" selection-start-line="341" selection-start-column="0" selection-end-line="341" selection-end-column="0" />
           <folding>
             <element signature="e#0#44#0" expanded="true" />
           </folding>
@@ -875,6 +860,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="5" lean-forward="false" selection-start-line="5" selection-start-column="5" selection-end-line="5" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syssspy.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="1" lean-forward="false" selection-start-line="16" selection-start-column="1" selection-end-line="16" selection-end-column="1" />
           <folding />
         </state>
       </provider>

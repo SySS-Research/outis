@@ -260,7 +260,7 @@ class TransportDns (Transport, ModuleBase):
             return None  # do not answer more than once
 
         if not self.senddataqueue.has_data():
-            print_debug(DEBUG_MODULE, "out of stager data do send")
+            print_debug(DEBUG_MODULE, "out of stager data to send")
             return None  # end of data to send / stager code
 
         # calculate lenght and maximal stage number

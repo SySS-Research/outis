@@ -340,6 +340,16 @@ class PlatformPowershell(Platform, ModuleBase):
                 print_error("agent is shorter than staging read, adding some spaces")
                 agent += b' ' * (MIN_AGENT_LEN-currentreallen)
 
+        # add spaces if the agent lenght is not aligned to 4 bytes with DNS and type A
+        if self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "DNS" \
+                and self.handler.transport.options['DNSTYPE']['Value'] == "A":
+            currentreallen = len(agent)
+            if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+                currentreallen += len(self.publickeyxml) + SIGNATURE_LEN_B64
+            while currentreallen % 4 != 0:
+                agent += b' '
+                currentreallen += 1
+
         # with stage authentication: publickey + signature + agentcode
         if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
             self._initkeycertificate()

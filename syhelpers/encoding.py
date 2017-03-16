@@ -73,10 +73,8 @@ def ipencode(data):
     :return: encoded form
     """
 
-    if len(data) > 4:
-        print_error("ipencode: data is more than 4 bytes")
+    if len(data) > 4 or len(data) < 4:
+        print_error("ipencode: data is more or less than 4 bytes, cannot encode")
         return None
-    while len(data) < 4:
-        data += b' '
 
     return '{}.{}.{}.{}'.format(*data).encode("utf-8")

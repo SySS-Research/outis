@@ -19,8 +19,8 @@ handler.setoption("DNSTYPE", "A")
 #handler.setoption("LPORT", "5000")
 #handler.setoption("BLUB", "TEST")
 
-handler.setoption("STAGEENCODING", "FALSE")
-handler.setoption("STAGEAUTHENTICATION", "FALSE")
+#handler.setoption("STAGEENCODING", "FALSE")
+#handler.setoption("STAGEAUTHENTICATION", "FALSE")
 #handler.setoption("LHOST", "10.201.1.83")
 
 handler.generatestager()
