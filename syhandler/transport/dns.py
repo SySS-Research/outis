@@ -247,12 +247,12 @@ class TransportDns (Transport, ModuleBase):
         :return: part of the staged agent or None
         """
 
+        if self.currentstagenum - 1 == stagepartnum and self.laststagepart:
+            return self.laststagepart
+
         if not self.staged:
             print_error("stager request for TransportDns but its not staged, dropping")
             return None
-
-        if self.currentstagenum - 1 == stagepartnum and self.laststagepart:
-            return self.laststagepart
 
         if self.currentstagenum != stagepartnum:
             print_debug(DEBUG_MODULE, "request for different stager part number, expected: {}, received: {}".format(
