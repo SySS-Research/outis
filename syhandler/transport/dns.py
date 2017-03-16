@@ -43,7 +43,7 @@ class TransportDns (Transport, ModuleBase):
                 'Description'   :   'DNS type to use for the connection',
                 'Required'      :   True,
                 'Value'         :   "TXT",
-                'Options'       :   ("TXT","A")
+                'Options'       :   ("TXT", "A")
             },
             'DNSSERVER': {
                 'Description'   :   'IP address of DNS server to connect for all queries',

