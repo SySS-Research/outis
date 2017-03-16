@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from handler.handler import Handler
+from syhandler.handler import Handler
 
 #import os.path
 #installPath = os.path.abspath(os.path.dirname(__file__))

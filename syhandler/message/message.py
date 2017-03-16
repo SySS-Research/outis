@@ -1,6 +1,6 @@
 
 from ..transport.transport import Transport
-from helpers.log import *
+from syhelpers.log import *
 import struct
 
 MESSAGE_HEADER_LEN = 5

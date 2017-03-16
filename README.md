@@ -9,7 +9,10 @@ Dependencies
 ============
 
  * python3
- * python-progressbar2 (for progressbars, duh!)
+ * python-progressbar2
+ * python-dnspython
+ * python-crypto
+ * python-pyopenssl
  * and probably more...
 
 

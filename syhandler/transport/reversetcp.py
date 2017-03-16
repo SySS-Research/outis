@@ -1,9 +1,9 @@
-from helpers.types import isportnumber
+from syhelpers.types import isportnumber
 from .transport import Transport
-from helpers.log import print_message, print_error
+from syhelpers.log import print_message, print_error
 import socket
 import ssl
-from helpers.modulebase import ModuleBase
+from syhelpers.modulebase import ModuleBase
 
 
 class TransportReverseTcp (Transport, ModuleBase):

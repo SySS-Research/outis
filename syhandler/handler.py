@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 import os
 
-from helpers.files import sanatizefilename
+from syhelpers.files import sanatizefilename
 from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message
-from platform.powershell.powershell import PlatformPowershell
-from helpers.log import *
-from helpers.modulebase import ModuleBase
+from syplatform.powershell.powershell import PlatformPowershell
+from syhelpers.log import *
+from syhelpers.modulebase import ModuleBase
 
 DEBUG_MODULE = "Handler"
 

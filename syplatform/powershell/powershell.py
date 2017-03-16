@@ -1,10 +1,10 @@
-from helpers.files import sanatizefilename
-from helpers.log import *
-import helpers.strings as helps
-import helpers.encoding as encryption
-import helpers.tls
-from ..platform import Platform
-from helpers.modulebase import ModuleBase
+from syhelpers.files import sanatizefilename
+from syhelpers.log import *
+import syhelpers.strings as helps
+import syhelpers.encoding as encryption
+import syhelpers.tls
+from syplatform.platform import Platform
+from syhelpers.modulebase import ModuleBase
 import os.path
 import base64
 
@@ -112,7 +112,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
         filename = sanatizefilename(filename)
 
-        if helpers.tls.load_certificate(filename) and helpers.tls.load_privatekey(filename):
+        if syhelpers.tls.load_certificate(filename) and syhelpers.tls.load_privatekey(filename):
             return True
         else:
             return False
@@ -124,7 +124,7 @@ class PlatformPowershell(Platform, ModuleBase):
         
         if not self.privatekey:
             return None
-        return helpers.tls.create_signature(self.privatekey, data)
+        return syhelpers.tls.create_signature(self.privatekey, data)
     
     def _getfingerprint(self):
         """
@@ -139,8 +139,8 @@ class PlatformPowershell(Platform, ModuleBase):
             return None
         else:
             publicnumbers = self.certificate.get_pubkey().to_cryptography_key().public_numbers()
-            modulus = base64.b64encode(helpers.tls.int2bytes(publicnumbers.n)).decode()
-            exponent = base64.b64encode(helpers.tls.int2bytes(publicnumbers.e)).decode()
+            modulus = base64.b64encode(syhelpers.tls.int2bytes(publicnumbers.n)).decode()
+            exponent = base64.b64encode(syhelpers.tls.int2bytes(publicnumbers.e)).decode()
             xml = '<RSAKeyValue><Modulus>{}</Modulus><Exponent>{}</Exponent></RSAKeyValue>'.format(modulus, exponent)
             return xml
 
@@ -155,11 +155,11 @@ class PlatformPowershell(Platform, ModuleBase):
 
         filename = sanatizefilename(self.options['STAGECERTIFICATEFILE']['Value'])
 
-        self.privatekey = helpers.tls.load_privatekey(filename)
+        self.privatekey = syhelpers.tls.load_privatekey(filename)
         if not self.privatekey:
             print_error("Failed to load privatekey, please check STAGECERTIFICATEFILE")
             return
-        self.certificate = helpers.tls.load_certificate(filename)
+        self.certificate = syhelpers.tls.load_certificate(filename)
         if not self.certificate:
             print_error("Failed to load certificate, please check STAGECERTIFICATEFILE")
             return

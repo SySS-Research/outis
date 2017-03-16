@@ -5,12 +5,12 @@ import threading
 
 import math
 
-from helpers.dataqueue import DataQueue
-from helpers.encoding import dnsdecode, dnsencode, lenofb64decoded
-from helpers.types import isportnumber, isint
+from syhelpers.dataqueue import DataQueue
+from syhelpers.encoding import dnsdecode, dnsencode, lenofb64decoded
+from syhelpers.types import isportnumber, isint
 from .transport import Transport
-from helpers.log import *
-from helpers.modulebase import ModuleBase
+from syhelpers.log import *
+from syhelpers.modulebase import ModuleBase
 import dns
 import dns.message
 

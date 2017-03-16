@@ -1,7 +1,7 @@
 
 import OpenSSL
 
-from helpers.log import print_error
+from syhelpers.log import print_error
 
 
 def load_certificate(filename):

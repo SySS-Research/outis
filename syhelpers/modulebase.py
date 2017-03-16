@@ -1,5 +1,5 @@
 
-from helpers.log import print_error
+from syhelpers.log import print_error
 
 
 class ModuleBase:
