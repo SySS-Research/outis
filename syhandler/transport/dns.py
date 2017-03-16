@@ -337,9 +337,9 @@ class DnsHandler(socketserver.BaseRequestHandler):
         #print_debug(DEBUG_MODULE, "q = {}, q.startswith('s') = {}, q.strip('s').isdigit() = {}".format(
         #    q, q.startswith('s'), q.strip('s').isdigit()))
 
-        if q.startswith("s") and q.strip("s").isdigit():  # stager request
+        if q.startswith("s") and q.split("r")[0].strip("s").isdigit():  # stager request
             self.stagerrequest = True
-            return int(q.strip("s"))  # we will not decode it
+            return int(q.split("r")[0].strip("s"))  # we will not decode it further
 
         # otherwise we expect a fully enrolled agent on the other side and decode
         try:

