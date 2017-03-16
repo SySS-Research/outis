@@ -43,9 +43,9 @@ class TransportDns (Transport, ModuleBase):
                 'Description'   :   'DNS type to use for the connection',
                 'Required'      :   True,
                 'Value'         :   "TXT",
-                'Options'       :   ("TXT","A")  # TODO: add and prefer A type
+                'Options'       :   ("TXT","A")
             },
-            'DNSSERVER': {  # TODO: implement!!!
+            'DNSSERVER': {
                 'Description'   :   'IP address of DNS server to connect for all queries',
                 'Required'      :   False,
                 'Value'         :   None

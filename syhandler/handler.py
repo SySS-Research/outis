@@ -120,7 +120,8 @@ class Handler(ModuleBase):
                 print_message("Staging done")
 
             # special case handling for our hacked DNSCAT2WRAPPER
-            if self.platform.options['AGENTTYPE']['Value'] != "DNSCAT2":
+            if self.platform.options['AGENTTYPE']['Value'] != "DNSCAT2" and \
+                            self.platform.options['AGENTTYPE']['Value'] != "DNSCAT2DOWNLOADER":
 
                 # if channel encryption, now is the time!
                 if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
@@ -144,7 +145,8 @@ class Handler(ModuleBase):
             self.transport.close()
 
         # special case handling for our hacked DNSCAT2WRAPPER
-        if self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2" and not exiting:
+        if (self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2" or
+                    self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER") and not exiting:
             print_message("Starting dnscat2 to handle the real connection")
             zone = self.transport.options['ZONE']['Value'].rstrip(".")
             secret = self.platform.fingerprint
