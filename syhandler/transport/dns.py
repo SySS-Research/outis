@@ -66,6 +66,7 @@ class TransportDns (Transport, ModuleBase):
         self.recvdataqueue = DataQueue()
         self.progress = None
         self.maxstagenum = None
+        self.laststagepart = None
     
     def setoption(self, name, value):
         """
@@ -250,6 +251,9 @@ class TransportDns (Transport, ModuleBase):
             print_error("stager request for TransportDns but its not staged, dropping")
             return None
 
+        if self.currentstagenum - 1 == stagepartnum and self.laststagepart:
+            return self.laststagepart
+
         if self.currentstagenum != stagepartnum:
             print_debug(DEBUG_MODULE, "request for different stager part number, expected: {}, received: {}".format(
                 self.currentstagenum, stagepartnum))
@@ -289,6 +293,7 @@ class TransportDns (Transport, ModuleBase):
         # return next data segment and increase segment counter
         nextdata = self.senddataqueue.get(maxlendata)
         self.currentstagenum += 1
+        self.laststagepart = nextdata
         return nextdata
 
 

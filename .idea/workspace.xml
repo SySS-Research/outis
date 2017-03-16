@@ -7,10 +7,6 @@
   <component name="ChangeListManager">
     <list default="true" id="3fb45792-add6-46ca-99cc-e82022d3e167" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/transport/dns.py" afterPath="$PROJECT_DIR$/syhandler/transport/dns.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/encoding.py" afterPath="$PROJECT_DIR$/syhelpers/encoding.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/log.py" afterPath="$PROJECT_DIR$/syhelpers/log.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/powershell.py" afterPath="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syssspy.py" afterPath="$PROJECT_DIR$/syssspy.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -25,7 +21,7 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syssspy.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="240">
@@ -57,11 +53,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dns.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="dns.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2908">
-              <caret line="432" column="99" lean-forward="true" selection-start-line="432" selection-start-column="99" selection-end-line="432" selection-end-column="99" />
+            <state relative-caret-position="583">
+              <caret line="295" column="37" lean-forward="false" selection-start-line="295" selection-start-column="37" selection-end-line="295" selection-end-column="37" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -122,11 +118,11 @@
         <option value="$PROJECT_DIR$/platform/powershell/powershell.py" />
         <option value="$PROJECT_DIR$/notes" />
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
         <option value="$PROJECT_DIR$/syhelpers/log.py" />
         <option value="$PROJECT_DIR$/syhelpers/encoding.py" />
         <option value="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
         <option value="$PROJECT_DIR$/syssspy.py" />
+        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
       </list>
     </option>
   </component>
@@ -478,7 +474,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="20" width="1920" height="1180" extended-state="0" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2529039" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -488,7 +484,7 @@
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299909" sideWeight="0.4979145" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24973601" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32898417" sideWeight="0.49683544" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32898417" sideWeight="0.49683544" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -844,16 +840,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2908">
-          <caret line="432" column="99" lean-forward="true" selection-start-line="432" selection-start-column="99" selection-end-line="432" selection-end-column="99" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="553">
@@ -879,6 +865,16 @@
         <state relative-caret-position="240">
           <caret line="16" column="1" lean-forward="false" selection-start-line="16" selection-start-column="1" selection-end-line="16" selection-end-column="1" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="583">
+          <caret line="295" column="37" lean-forward="false" selection-start-line="295" selection-start-column="37" selection-end-line="295" selection-end-column="37" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
