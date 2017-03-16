@@ -2,6 +2,8 @@ import math
 import hashlib
 import base64
 
+from syhelpers.log import print_error
+
 
 def xor_encode(text, key):
     """
@@ -64,3 +66,17 @@ def dnsencode(data):
     return base64.b64encode(data)
 
 
+def ipencode(data):
+    """
+    encodes the data as a single IPv4 address
+    :param data: data to encode
+    :return: encoded form
+    """
+
+    if len(data) > 4:
+        print_error("ipencode: data is more than 4 bytes")
+        return None
+    while len(data) < 4:
+        data += b' '
+
+    return '{}.{}.{}.{}'.format(*data).encode("utf-8")

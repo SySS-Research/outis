@@ -6,7 +6,7 @@ import threading
 import math
 
 from syhelpers.dataqueue import DataQueue
-from syhelpers.encoding import dnsdecode, dnsencode, lenofb64decoded
+from syhelpers.encoding import dnsdecode, dnsencode, lenofb64decoded, ipencode
 from syhelpers.types import isportnumber, isint
 from .transport import Transport
 from syhelpers.log import *
@@ -43,7 +43,7 @@ class TransportDns (Transport, ModuleBase):
                 'Description'   :   'DNS type to use for the connection',
                 'Required'      :   True,
                 'Value'         :   "TXT",
-                'Options'       :   ("TXT",)  # TODO: add and prefer A type
+                'Options'       :   ("TXT","A")  # TODO: add and prefer A type
             },
             'DNSSERVER': {  # TODO: implement!!!
                 'Description'   :   'IP address of DNS server to connect for all queries',
@@ -260,7 +260,14 @@ class TransportDns (Transport, ModuleBase):
             return None  # end of data to send / stager code
 
         # calculate lenght and maximal stage number
-        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)  # TODO: change for non Base64 encoding schemes
+        if self.options['DNSTYPE']['Value'] == "TXT":
+            maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)  # TODO: change for non Base64 encoding schemes
+        elif self.options['DNSTYPE']['Value'] == "A":
+            maxlendata = 4
+        else:
+            print_error("invalid DNSTYPE")
+            return None
+
         if self.maxstagenum is None:
             self.maxstagenum = math.ceil(self.senddataqueue.length() / maxlendata) - 1
 
@@ -335,15 +342,20 @@ class DnsHandler(socketserver.BaseRequestHandler):
         except binascii.Error:
             return None
 
-    @staticmethod
-    def _encode_response(rdata):
+    def _encode_response(self, rdata):
         """
         encodes the response data to a form we can include in a DNS response
         :param rdata: data to include
         :return: encoded data
         """
 
-        return dnsencode(rdata)
+        if self.transport.options['DNSTYPE']['Value'] == "TXT":
+            return dnsencode(rdata)
+        elif self.transport.options['DNSTYPE']['Value'] == "A":
+            return ipencode(rdata)
+        else:
+            print_error("invalied DNSTYPE")
+            return None
 
     def _get_response(self, qtext):
         """
@@ -356,6 +368,19 @@ class DnsHandler(socketserver.BaseRequestHandler):
             return self.transport.serve_stage(qtext)
 
         return qtext  # TODO: for now we just reply
+
+    def _dns_type(self):
+        """
+        Should return the DNS response data type needed, TXT or A
+        :return: dns.rdatatype.TXT or dns.rdatatype.A
+        """
+        if self.transport.options['DNSTYPE']['Value'] == "TXT":
+            return dns.rdatatype.TXT
+        elif self.transport.options['DNSTYPE']['Value'] == "A":
+            return dns.rdatatype.A
+        else:
+            print_error("invalied DNSTYPE")
+            return None
 
     def handle(self):
         """
@@ -404,8 +429,9 @@ class DnsHandler(socketserver.BaseRequestHandler):
                     data = self._get_response(qtext)
                     if data:
                         data = self._encode_response(data)
+                        dnstype = self._dns_type()
                         print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dns.rdatatype.TXT,
+                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dnstype,
                                                                str(data, 'utf-8')))
                         socket.sendto(resp.to_wire(), self.client_address)
                     else:

