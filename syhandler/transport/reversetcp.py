@@ -1,9 +1,13 @@
 from syhelpers.types import isportnumber
 from .transport import Transport
-from syhelpers.log import print_message, print_error
+from syhelpers.log import print_message, print_error, print_debug
+from syhelpers.modulebase import ModuleBase
+
 import socket
 import ssl
-from syhelpers.modulebase import ModuleBase
+
+
+DEBUG_MODULE = "TransportReverseTcp"
 
 
 class TransportReverseTcp (Transport, ModuleBase):
@@ -11,6 +15,11 @@ class TransportReverseTcp (Transport, ModuleBase):
 
     # noinspection PyMissingConstructor
     def __init__(self, handler):
+        """
+        initializese the module
+        :param handler: backreference to syssspy handler object
+        """
+
         self.options = {
             'LHOST' : {
                 'Description'   :   'Interface IP to listen on',
@@ -23,12 +32,12 @@ class TransportReverseTcp (Transport, ModuleBase):
                 'Value'         :   "8080"
             },
             'CONNECTHOST' : {
-                'Description'   :   'Interface IP to listen on (if not set, uses LHOST)',
+                'Description'   :   'Interface IP to listen on (uses LHOST if not set )',
                 'Required'      :   False,
                 'Value'         :   None
             },
             'CONNECTPORT' : {
-                'Description'   :   'Port to connect to (if not set, uses LPORT)',
+                'Description'   :   'Port to connect to (uses LPORT if not set)',
                 'Required'      :   False,
                 'Value'         :   None
             }
@@ -89,6 +98,12 @@ class TransportReverseTcp (Transport, ModuleBase):
         return valid
     
     def open(self, staged=False):
+        """
+        opens the server part and listens for connections
+        :param staged: should we stage first?
+        :return: None
+        """
+
         if not self.validate_options():
             return
 
@@ -102,11 +117,20 @@ class TransportReverseTcp (Transport, ModuleBase):
         self.socket.listen(1)
 
         print_message("TCP transport listening on {}:{}".format(*lparams))
-        
+
+        import time
+        time.sleep(30)
+
         self.conn, addr = self.socket.accept()
         print_message("Connection from {}:{}".format(*addr))
    
     def send(self, data):
+        """
+        send data to the connected host
+        :param data: data to send
+        :return: None
+        """
+
         if not self.conn:
             print_error("Connection not open")
             return
@@ -114,6 +138,12 @@ class TransportReverseTcp (Transport, ModuleBase):
         self.conn.send(data)
 
     def receive(self, leng=1024):
+        """
+        receive data from connected host
+        :param leng: length of data to collect
+        :return: data
+        """
+
         if not self.conn:
             print_error("Connection not open")
             return
@@ -125,11 +155,25 @@ class TransportReverseTcp (Transport, ModuleBase):
         return data
 
     def upgradefromstager(self):
+        """
+        upgrade the connection from staged form to unstaged real connection
+        :return: None
+        """
+
         # TODO upgrade stager instead of reopening connection
+
+        print_debug(DEBUG_MODULE, "upgrading from stager")
         self.close()
         self.open(staged=False)
 
     def upgradetotls(self):
+        """
+        upgrade to a tls wrapped connection
+        :return: None
+        """
+
+        print_debug(DEBUG_MODULE, "upgrading to TLS context")
+
         # TODO: newer TLS version?
         # noinspection PyUnresolvedReferences
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
@@ -139,6 +183,11 @@ class TransportReverseTcp (Transport, ModuleBase):
         print_message("Upgrade to TLS done")
 
     def close(self):
+        """
+        Close the connection
+        :return: None
+        """
+
         if not self.conn:
             print_error("Connection not open")
             return

