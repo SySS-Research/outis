@@ -284,8 +284,8 @@ class TransportDns (Transport, ModuleBase):
             return self.laststagepart
 
         if not self.staged:
-            if self.currentstagenum == stagepartnum:  # they try to request the last stage after end of staging
-                print_debug(DEBUG_MODULE, "request for last / empty stage part, ignoring")
+            if self.handler.platform.options["STAGED"]["Value"] == "TRUE":  # staging ended recently
+                print_debug(DEBUG_MODULE, "request for stage part {}, but not staging anymore, ignoring".format(stagepartnum))
             else:
                 print_error("stager request for TransportDns but its not staged, dropping")
             return None
@@ -313,7 +313,7 @@ class TransportDns (Transport, ModuleBase):
 
         # create progress bar if selected
         if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
-                and isactivated(DEBUG_MODULE):
+                and not isactivated(DEBUG_MODULE):
             import progressbar
             self.progress = progressbar.ProgressBar(0, self.maxstagenum)
 

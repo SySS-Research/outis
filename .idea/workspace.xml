@@ -6,15 +6,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3fb45792-add6-46ca-99cc-e82022d3e167" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/handler.py" afterPath="$PROJECT_DIR$/syhandler/handler.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/message/message.py" afterPath="$PROJECT_DIR$/syhandler/message/message.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/transport/dns.py" afterPath="$PROJECT_DIR$/syhandler/transport/dns.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/dataqueue.py" afterPath="$PROJECT_DIR$/syhelpers/dataqueue.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/encoding.py" afterPath="$PROJECT_DIR$/syhelpers/encoding.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/agent.ps1" afterPath="$PROJECT_DIR$/syplatform/powershell/agent.ps1" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/powershell.py" afterPath="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" afterPath="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syssspy.py" afterPath="$PROJECT_DIR$/syssspy.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -29,11 +22,11 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syssspy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="343">
-              <caret line="25" column="1" lean-forward="false" selection-start-line="25" selection-start-column="1" selection-end-line="25" selection-end-column="1" />
+            <state relative-caret-position="433">
+              <caret line="31" column="35" lean-forward="true" selection-start-line="31" selection-start-column="35" selection-end-line="31" selection-end-column="35" />
               <folding />
             </state>
           </provider>
@@ -49,10 +42,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="powershell.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="powershell.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="248">
+            <state relative-caret-position="653">
               <caret line="567" column="0" lean-forward="true" selection-start-line="567" selection-start-column="0" selection-end-line="567" selection-end-column="0" />
               <folding />
             </state>
@@ -114,8 +107,8 @@
       <file leaf-file-name="dns.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3435">
-              <caret line="259" column="44" lean-forward="true" selection-start-line="259" selection-start-column="44" selection-end-line="259" selection-end-column="44" />
+            <state relative-caret-position="217">
+              <caret line="286" column="15" lean-forward="false" selection-start-line="286" selection-start-column="15" selection-end-line="286" selection-end-column="15" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -145,13 +138,13 @@
       <find>function Transport-Dns-Open {     &lt;#         .SYNOPSIS         connects using DNS as protocol         .PARAMETER Zone         DNS zone to use for the connection         .PARAMETER DnsServer         host of the dns server to use         .PARAMETER timeout         timeout in seconds for each DNS query         .PARAMETER retries         retries for each failed query     #&gt;     param(         [Parameter(Mandatory=$true)]         [String]         $Zone,          [Parameter(Mandatory=$false)]         [String]         $DnsServer = &quot;&quot;,          [Parameter(Mandatory=$false)]         [Int32]         $timeout = 2,          [Parameter(Mandatory=$false)]         [Int32]         $retries = 0     )      $connection = New-Object -TypeName PSObject -Property @{        'zone' = $Zone        'dnsServer' = $DnsServer        'dnstype' = $NULL        'timeout' = $timeout        'retries' = $retries        'stream' = $NULL        'requestid' = Get-Random     }     $dnstypefound=$false      foreach ($type in @('TXT','CNAME','MX','AAAA','A')) {         $connection.dnstype = $type         $res = Transport-Dns-Intern-SendQuery -Connection $connection -Content 'pingquery'          $res = New-Object String($res,0,$res.Length)         Write-Host $res         if ($res -eq &quot;pong&quot;) {             $dnstypefound=$true             Write-Output &quot;Connection with DNS type $($connection.dnstype) possible&quot;             #break # TODO: break         }     }      if(!$dnstypefound) {         Write-Output 'Error: failed to find dnstype'         exit(1)     } else {         Write-Output &quot;Connection with DNS type $($connection.dnstype) possible&quot;     }       $Source = @&quot; public class DnsStream : System.IO.Stream {    private System.Collections.Generic.Queue&lt;byte&gt; sendqueue = new System.Collections.Generic.Queue&lt;byte&gt;();   private System.Collections.Generic.Queue&lt;byte&gt; receivequeue = new System.Collections.Generic.Queue&lt;byte&gt;();    private System.Management.Automation.PSObject dnsconnection;   private System.Management.Automation.ScriptBlock sendqueryfunction;    public DnsStream(System.Management.Automation.PSObject dnsconnection,       System.Management.Automation.ScriptBlock sendqueryfunction) : base() {     this.dnsconnection = dnsconnection;     this.sendqueryfunction = sendqueryfunction;   }    public override bool CanRead {     get { return true; }   }    public override bool CanSeek {     get { return false; }   }    public override bool CanWrite {     get { return true; }   }    public override void Flush() {   }    public override long Length {     get {       System.Console.WriteLine(&quot;DnsStream.Length called&quot;);       return 0;     }   }    public override long Position {     get {         System.Console.WriteLine(&quot;DnsStream.Position.get called&quot;);         return 0;     }     set {         System.Console.WriteLine(&quot;DnsStream.Position.set called&quot;);         return;     }   }    public override void SetLength(long value) {     System.Console.WriteLine(&quot;DnsStream.SetLength called&quot;);     return;   }    public override int Read(byte[] buffer, int offset, int count) {     if (receivequeue.Count == 0) {         // TODO: GET MORE DATA         return 0;     }     if (receivequeue.Count &lt; count) {         count = receivequeue.Count;     }     for (int i=0; i&lt;count; ++i) {         buffer[offset+i] = receivequeue.Dequeue();     }     return count;   }    public override void Write(byte[] buffer, int offset, int count) {     for (int i=0; i&lt;count; ++i) {         sendqueue.Enqueue(buffer[offset+i]);     }     this.sendqueryfunction.Invoke(this.dnsconnection, &quot;test&quot;);     // TODO: send the data!   }    public override long Seek(long offset, System.IO.SeekOrigin loc) {     System.Console.WriteLine(&quot;DnsStream.Seek called&quot;);     return -1;   } } &quot;@      Add-Type -TypeDefinition $Source      $sendqueryfunction = get-content Function:\Transport-Dns-Intern-SendQuery      $dnsstream = New-Object DnsStream($connection, $sendqueryfunction)     $connection.stream = $dnsstream      return $connection  }  function Transport-Dns-Intern-SendQuery {     &lt;#         .SYNOPSIS         sends a single DNS query and records the result         .PARAMETER Connection         DNS connection details         .PARAMETER Content         data to send using the connection     #&gt;     param(         [Parameter(Mandatory=$true)]         [PSObject]         $Connection,          [Parameter(Mandatory=$true)]         [String]         $Content     )      if (($Content.Length -gt 250) -or ($Content.Length -lt 1)) {         return $NULL     }      $res=$NULL     $timeoutstr=&quot;&quot;     if ($Connection.timeout -ne 2) {         $timeoutstr=&quot; -timeout=$($Connection.timeout)&quot;     }      $r=$Connection.requestid++     $data=Transport-Dns-Intern-ConvertToHostname($Content)     $data=&quot;$($data).r$($r).$($Connection.zone).&quot;      for ($t=0; $t -le $Connection.retries; $t++) {         $command=&quot;nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)&quot;         Write-Host $command         $c=[string](IEX $command 2&gt;&amp;1)         Write-Host &quot;&gt;&gt;&gt;&gt;&quot; $c &quot;&lt;&lt;&lt;&lt;&quot;          if ($Connection.dnstype -eq 'TXT') {             if ($c.Contains('&quot;')) {                 $res = [Convert]::FromBase64String($c.Split('&quot;')[1])                 break             }         } elseif ($Connection.dnstype -eq &quot;MX&quot;) {             if ($c.Contains('mail')) {                 # TODO: does not work yet !!!                 $res = ([string](($c[($c.IndexOf(&quot;mail exchanger = &quot;) + 17)..$c.Length] -join '').split(&quot;`n&quot;)[0])).replace($Connection.zone,&quot;&quot;).replace(&quot;.&quot;,&quot;&quot;).replace(&quot;`n&quot;,&quot;&quot;).replace(&quot; &quot;,&quot;&quot;).Trim()                 $res = Transport-Dns-Intern-ConvertHexToByteArray($res)                 break             }         }          # TODO: break this loop if answer     }      # TODO: parsing, everything     return $res }   function Transport-Dns-Intern-ConvertToHostname($data) {     return ([System.BitConverter]::ToString([System.Text.Encoding]::UTF8.GetBytes($data)).split(&quot;-&quot;) -join &quot;&quot;) }  function Transport-Dns-Intern-ConvertHexToByteArray($hex) {     # TODO: does not work yet !!!     $bytes = New-Object byte[$hex.Length / 2];     for ($i=0; i&lt;$hex.Length; i += 2) {         bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);     }     return bytes }  function Transport-Dns-Close([PSObject] $obj) {     # TODO: ... }   function Transport-Dns-Receive([PSObject] $obj, [Int32] $bytestoread) {     # TODO: ... }  function Transport-Dns-Send([PSObject] $obj, $data) {     # TODO: ... }  $DNSZONE = &quot;zfs.sy.gs&quot; $DNSSERVER = &quot;10.201.1.83&quot; $TIMEOUT = $NULL $RETRIES = $NULL  $connection = Transport-Dns-Open -Zone &quot;$($DNSZONE)&quot; -DnsServer &quot;$($DNSSERVER)&quot;  $string = &quot;Hello World&quot; $bytes = [System.Text.Encoding]::Unicode.GetBytes($string)  $connection.stream.Write($bytes, 0, $bytes.Length)  $connection.stream.Read($bytes, 0, 5)</find>
       <find>COMMAND_NODATA</find>
       <find>ping</find>
-      <find>stager request for TransportDns but its not staged, dropping</find>
       <find>==</find>
       <find>command re</find>
       <find>250</find>
       <find>isstaged</find>
       <find>convertToHostname</find>
       <find>SYREPLACE_DNSSERVER</find>
+      <find>stager request for TransportDns but its not staged, dropping</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -189,9 +182,9 @@
         <option value="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" />
         <option value="$PROJECT_DIR$/syplatform/powershell/agent.ps1" />
         <option value="$PROJECT_DIR$/syhandler/message/message.py" />
-        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
         <option value="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
         <option value="$PROJECT_DIR$/syssspy.py" />
+        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
       </list>
     </option>
   </component>
@@ -966,10 +959,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/syssspy.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="433">
+          <caret line="31" column="35" lean-forward="true" selection-start-line="31" selection-start-column="35" selection-end-line="31" selection-end-column="35" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3435">
-          <caret line="259" column="44" lean-forward="true" selection-start-line="259" selection-start-column="44" selection-end-line="259" selection-end-column="44" />
+        <state relative-caret-position="217">
+          <caret line="286" column="15" lean-forward="false" selection-start-line="286" selection-start-column="15" selection-end-line="286" selection-end-column="15" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
@@ -978,16 +979,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
+        <state relative-caret-position="653">
           <caret line="567" column="0" lean-forward="true" selection-start-line="567" selection-start-column="0" selection-end-line="567" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/syssspy.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="343">
-          <caret line="25" column="1" lean-forward="false" selection-start-line="25" selection-start-column="1" selection-end-line="25" selection-end-column="1" />
           <folding />
         </state>
       </provider>
