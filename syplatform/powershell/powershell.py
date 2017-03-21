@@ -544,8 +544,18 @@ class PlatformPowershell(Platform, ModuleBase):
             agent = agent.replace('SYREPLACE_CONNECTPORT', str(port))
 
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
-            # TODO: implement agent for Powershell and DNS here!
-            return b"NO AGENT"
+            zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
+            server = self.handler.transport.options['DNSSERVER']['Value']
+            timeout = self.options['TIMEOUT']['Value']
+            retries = self.options['RETRIES']['Value']
+            print_debug(DEBUG_MODULE, "zone = {}, server = {}, timeout = {}, retries = {}"
+                        .format(zone, server, timeout, retries))
+
+            agent = agent.replace('SYREPLACE_CONNECTIONMETHOD', "DNS")
+            agent = agent.replace('SYREPLACE_DNSZONE', str(zone))
+            agent = agent.replace('SYREPLACE_DNSSERVER', str(server))
+            agent = agent.replace('SYREPLACE_TIMEOUT', str(timeout))
+            agent = agent.replace('SYREPLACE_RETRIES', str(retries))
 
         # combination platform / transport currently not supported
         else:

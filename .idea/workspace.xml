@@ -6,14 +6,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3fb45792-add6-46ca-99cc-e82022d3e167" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/transport/dns.py" afterPath="$PROJECT_DIR$/syhandler/transport/dns.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhandler/transport/reversetcp.py" afterPath="$PROJECT_DIR$/syhandler/transport/reversetcp.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/encoding.py" afterPath="$PROJECT_DIR$/syhelpers/encoding.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syhelpers/log.py" afterPath="$PROJECT_DIR$/syhelpers/log.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/agent.ps1" afterPath="$PROJECT_DIR$/syplatform/powershell/agent.ps1" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/message/message.ps1" afterPath="$PROJECT_DIR$/syplatform/powershell/message/message.ps1" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/powershell.py" afterPath="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" afterPath="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/syssspy.py" afterPath="$PROJECT_DIR$/syssspy.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -32,11 +30,19 @@
       <file leaf-file-name="syssspy.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syssspy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="23" column="0" lean-forward="false" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
-              <folding>
-                <element signature="e#20#57#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="165">
+              <caret line="12" column="0" lean-forward="false" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dns.ps1" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-67">
+              <caret line="141" column="50" lean-forward="true" selection-start-line="141" selection-start-column="50" selection-end-line="141" selection-end-column="50" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -44,20 +50,18 @@
       <file leaf-file-name="powershell.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1232">
-              <caret line="322" column="62" lean-forward="false" selection-start-line="322" selection-start-column="56" selection-end-line="322" selection-end-column="62" />
-              <folding>
-                <element signature="e#0#44#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="342">
+              <caret line="431" column="0" lean-forward="true" selection-start-line="431" selection-start-column="0" selection-end-line="431" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dns.ps1" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1">
+      <file leaf-file-name="dataqueue.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/syhelpers/dataqueue.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="23" column="15" lean-forward="true" selection-start-line="23" selection-start-column="15" selection-end-line="23" selection-end-column="15" />
+            <state relative-caret-position="330">
+              <caret line="22" column="24" lean-forward="true" selection-start-line="22" selection-start-column="24" selection-end-line="22" selection-end-column="24" />
               <folding />
             </state>
           </provider>
@@ -66,18 +70,8 @@
       <file leaf-file-name="reversetcp.ps1" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/reversetcp.ps1">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="885">
-              <caret line="59" column="20" lean-forward="false" selection-start-line="59" selection-start-column="8" selection-end-line="59" selection-end-column="20" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="agent.ps1" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/syplatform/powershell/agent.ps1">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="358">
-              <caret line="28" column="48" lean-forward="true" selection-start-line="28" selection-start-column="48" selection-end-line="28" selection-end-column="48" />
+            <state relative-caret-position="327">
+              <caret line="45" column="45" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="45" />
               <folding />
             </state>
           </provider>
@@ -86,56 +80,50 @@
       <file leaf-file-name="encoding.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-159">
+            <state relative-caret-position="885">
               <caret line="63" column="43" lean-forward="false" selection-start-line="63" selection-start-column="43" selection-end-line="63" selection-end-column="43" />
-              <folding>
-                <element signature="e#0#11#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="types.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/syhelpers/types.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="195">
-              <caret line="13" column="0" lean-forward="false" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="log.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/syhelpers/log.py">
+      <file leaf-file-name="agent.ps1" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/syplatform/powershell/agent.ps1">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="75">
-              <caret line="5" column="24" lean-forward="false" selection-start-line="5" selection-start-column="5" selection-end-line="5" selection-end-column="24" />
-              <folding>
-                <marker date="1489745910124" expanded="true" signature="28:159" ph="..." />
-              </folding>
+            <state relative-caret-position="388">
+              <caret line="37" column="36" lean-forward="true" selection-start-line="37" selection-start-column="36" selection-end-line="37" selection-end-column="36" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dns.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="message.ps1" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/syplatform/powershell/message/message.ps1">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="450">
+              <caret line="36" column="0" lean-forward="false" selection-start-line="36" selection-start-column="0" selection-end-line="38" selection-end-column="5" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="tls.ps1" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/tls.ps1">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="960">
+              <caret line="64" column="1" lean-forward="true" selection-start-line="64" selection-start-column="1" selection-end-line="64" selection-end-column="1" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="dns.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="460">
-              <caret line="408" column="51" lean-forward="true" selection-start-line="408" selection-start-column="51" selection-end-line="408" selection-end-column="51" />
+            <state relative-caret-position="465">
+              <caret line="376" column="23" lean-forward="true" selection-start-line="376" selection-start-column="23" selection-end-line="376" selection-end-column="23" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="reversetcp.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/syhandler/transport/reversetcp.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-302">
-              <caret line="136" column="0" lean-forward="true" selection-start-line="136" selection-start-column="0" selection-end-line="136" selection-end-column="0" />
-              <folding>
-                <element signature="e#0#40#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -160,6 +148,9 @@
       <find>VALUE</find>
       <find>but it</find>
       <find>DEBUG_MODULES</find>
+      <find>function Transport-Dns-Open {     &lt;#         .SYNOPSIS         connects using DNS as protocol         .PARAMETER Zone         DNS zone to use for the connection         .PARAMETER DnsServer         host of the dns server to use         .PARAMETER timeout         timeout in seconds for each DNS query         .PARAMETER retries         retries for each failed query     #&gt;     param(         [Parameter(Mandatory=$true)]         [String]         $Zone,          [Parameter(Mandatory=$false)]         [String]         $DnsServer = &quot;&quot;,          [Parameter(Mandatory=$false)]         [Int32]         $timeout = 2,          [Parameter(Mandatory=$false)]         [Int32]         $retries = 0     )      $connection = New-Object -TypeName PSObject -Property @{        'zone' = $Zone        'dnsServer' = $DnsServer        'dnstype' = $NULL        'timeout' = $timeout        'retries' = $retries        'stream' = $NULL        'requestid' = Get-Random     }     $dnstypefound=$false      foreach ($type in @('TXT','CNAME','MX','AAAA','A')) {         $connection.dnstype = $type         $res = Transport-Dns-Intern-SendQuery -Connection $connection -Content 'pingquery'          $res = New-Object String($res,0,$res.Length)         Write-Host $res         if ($res -eq &quot;pong&quot;) {             $dnstypefound=$true             Write-Output &quot;Connection with DNS type $($connection.dnstype) possible&quot;             #break # TODO: break         }     }      if(!$dnstypefound) {         Write-Output 'Error: failed to find dnstype'         exit(1)     } else {         Write-Output &quot;Connection with DNS type $($connection.dnstype) possible&quot;     }       $Source = @&quot; public class DnsStream : System.IO.Stream {    private System.Collections.Generic.Queue&lt;byte&gt; sendqueue = new System.Collections.Generic.Queue&lt;byte&gt;();   private System.Collections.Generic.Queue&lt;byte&gt; receivequeue = new System.Collections.Generic.Queue&lt;byte&gt;();    private System.Management.Automation.PSObject dnsconnection;   private System.Management.Automation.ScriptBlock sendqueryfunction;    public DnsStream(System.Management.Automation.PSObject dnsconnection,       System.Management.Automation.ScriptBlock sendqueryfunction) : base() {     this.dnsconnection = dnsconnection;     this.sendqueryfunction = sendqueryfunction;   }    public override bool CanRead {     get { return true; }   }    public override bool CanSeek {     get { return false; }   }    public override bool CanWrite {     get { return true; }   }    public override void Flush() {   }    public override long Length {     get {       System.Console.WriteLine(&quot;DnsStream.Length called&quot;);       return 0;     }   }    public override long Position {     get {         System.Console.WriteLine(&quot;DnsStream.Position.get called&quot;);         return 0;     }     set {         System.Console.WriteLine(&quot;DnsStream.Position.set called&quot;);         return;     }   }    public override void SetLength(long value) {     System.Console.WriteLine(&quot;DnsStream.SetLength called&quot;);     return;   }    public override int Read(byte[] buffer, int offset, int count) {     if (receivequeue.Count == 0) {         // TODO: GET MORE DATA         return 0;     }     if (receivequeue.Count &lt; count) {         count = receivequeue.Count;     }     for (int i=0; i&lt;count; ++i) {         buffer[offset+i] = receivequeue.Dequeue();     }     return count;   }    public override void Write(byte[] buffer, int offset, int count) {     for (int i=0; i&lt;count; ++i) {         sendqueue.Enqueue(buffer[offset+i]);     }     this.sendqueryfunction.Invoke(this.dnsconnection, &quot;test&quot;);     // TODO: send the data!   }    public override long Seek(long offset, System.IO.SeekOrigin loc) {     System.Console.WriteLine(&quot;DnsStream.Seek called&quot;);     return -1;   } } &quot;@      Add-Type -TypeDefinition $Source      $sendqueryfunction = get-content Function:\Transport-Dns-Intern-SendQuery      $dnsstream = New-Object DnsStream($connection, $sendqueryfunction)     $connection.stream = $dnsstream      return $connection  }  function Transport-Dns-Intern-SendQuery {     &lt;#         .SYNOPSIS         sends a single DNS query and records the result         .PARAMETER Connection         DNS connection details         .PARAMETER Content         data to send using the connection     #&gt;     param(         [Parameter(Mandatory=$true)]         [PSObject]         $Connection,          [Parameter(Mandatory=$true)]         [String]         $Content     )      if (($Content.Length -gt 250) -or ($Content.Length -lt 1)) {         return $NULL     }      $res=$NULL     $timeoutstr=&quot;&quot;     if ($Connection.timeout -ne 2) {         $timeoutstr=&quot; -timeout=$($Connection.timeout)&quot;     }      $r=$Connection.requestid++     $data=Transport-Dns-Intern-ConvertToHostname($Content)     $data=&quot;$($data).r$($r).$($Connection.zone).&quot;      for ($t=0; $t -le $Connection.retries; $t++) {         $command=&quot;nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)&quot;         Write-Host $command         $c=[string](IEX $command 2&gt;&amp;1)         Write-Host &quot;&gt;&gt;&gt;&gt;&quot; $c &quot;&lt;&lt;&lt;&lt;&quot;          if ($Connection.dnstype -eq 'TXT') {             if ($c.Contains('&quot;')) {                 $res = [Convert]::FromBase64String($c.Split('&quot;')[1])                 break             }         } elseif ($Connection.dnstype -eq &quot;MX&quot;) {             if ($c.Contains('mail')) {                 # TODO: does not work yet !!!                 $res = ([string](($c[($c.IndexOf(&quot;mail exchanger = &quot;) + 17)..$c.Length] -join '').split(&quot;`n&quot;)[0])).replace($Connection.zone,&quot;&quot;).replace(&quot;.&quot;,&quot;&quot;).replace(&quot;`n&quot;,&quot;&quot;).replace(&quot; &quot;,&quot;&quot;).Trim()                 $res = Transport-Dns-Intern-ConvertHexToByteArray($res)                 break             }         }          # TODO: break this loop if answer     }      # TODO: parsing, everything     return $res }   function Transport-Dns-Intern-ConvertToHostname($data) {     return ([System.BitConverter]::ToString([System.Text.Encoding]::UTF8.GetBytes($data)).split(&quot;-&quot;) -join &quot;&quot;) }  function Transport-Dns-Intern-ConvertHexToByteArray($hex) {     # TODO: does not work yet !!!     $bytes = New-Object byte[$hex.Length / 2];     for ($i=0; i&lt;$hex.Length; i += 2) {         bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);     }     return bytes }  function Transport-Dns-Close([PSObject] $obj) {     # TODO: ... }   function Transport-Dns-Receive([PSObject] $obj, [Int32] $bytestoread) {     # TODO: ... }  function Transport-Dns-Send([PSObject] $obj, $data) {     # TODO: ... }  $DNSZONE = &quot;zfs.sy.gs&quot; $DNSSERVER = &quot;10.201.1.83&quot; $TIMEOUT = $NULL $RETRIES = $NULL  $connection = Transport-Dns-Open -Zone &quot;$($DNSZONE)&quot; -DnsServer &quot;$($DNSSERVER)&quot;  $string = &quot;Hello World&quot; $bytes = [System.Text.Encoding]::Unicode.GetBytes($string)  $connection.stream.Write($bytes, 0, $bytes.Length)  $connection.stream.Read($bytes, 0, 5)</find>
+      <find>COMMAND_NODATA</find>
+      <find>ping</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -189,12 +180,13 @@
         <option value="$PROJECT_DIR$/syhandler/handler.py" />
         <option value="$PROJECT_DIR$/syhelpers/log.py" />
         <option value="$PROJECT_DIR$/syhandler/transport/reversetcp.py" />
+        <option value="$PROJECT_DIR$/syhelpers/encoding.py" />
+        <option value="$PROJECT_DIR$/syplatform/powershell/agent.ps1" />
         <option value="$PROJECT_DIR$/syplatform/powershell/powershell.py" />
         <option value="$PROJECT_DIR$/syssspy.py" />
-        <option value="$PROJECT_DIR$/syplatform/powershell/agent.ps1" />
-        <option value="$PROJECT_DIR$/syhelpers/encoding.py" />
-        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
+        <option value="$PROJECT_DIR$/syplatform/powershell/message/message.ps1" />
         <option value="$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1" />
+        <option value="$PROJECT_DIR$/syhandler/transport/dns.py" />
       </list>
     </option>
   </component>
@@ -238,7 +230,6 @@
     </navigator>
     <panes>
       <pane id="Scratches" />
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -315,6 +306,28 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="syplatform" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="powershell" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="message" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="syssspy" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="syssspy" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="syhelpers" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -371,6 +384,7 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -574,21 +588,21 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2529039" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.50475186" order="8" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32991612" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32991612" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299909" sideWeight="0.4979145" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.24973601" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32898417" sideWeight="0.49524814" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32991612" sideWeight="0.49524814" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299909" sideWeight="0.4979145" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection Results" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32898417" sideWeight="0.49788806" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32991612" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="VcsContentAnnotationSettings">
@@ -601,20 +615,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/syhelpers/strings.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="45">
-          <caret line="4" column="17" lean-forward="false" selection-start-line="4" selection-start-column="4" selection-end-line="4" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/syhandler/message/message.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1020">
-          <caret line="70" column="8" lean-forward="false" selection-start-line="70" selection-start-column="8" selection-end-line="70" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/platform/dnscat2wrapper/dnscat2wrapper.py" />
     <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -638,7 +638,7 @@
         <state relative-caret-position="30">
           <caret line="2" column="35" lean-forward="false" selection-start-line="2" selection-start-column="35" selection-end-line="2" selection-end-column="35" />
           <folding>
-            <element signature="e#20#57#0" expanded="true" />
+            <element signature="e#20#57#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -662,7 +662,7 @@
         <state relative-caret-position="1455">
           <caret line="97" column="8" lean-forward="false" selection-start-line="97" selection-start-column="8" selection-end-line="97" selection-end-column="8" />
           <folding>
-            <element signature="e#0#44#0" expanded="true" />
+            <element signature="e#0#44#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -711,7 +711,7 @@
         <state relative-caret-position="75">
           <caret line="6" column="15" lean-forward="false" selection-start-line="6" selection-start-column="15" selection-end-line="6" selection-end-column="57" />
           <folding>
-            <element signature="e#20#57#0" expanded="true" />
+            <element signature="e#20#57#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -735,7 +735,7 @@
         <state relative-caret-position="90">
           <caret line="6" column="41" lean-forward="false" selection-start-line="6" selection-start-column="41" selection-end-line="6" selection-end-column="41" />
           <folding>
-            <element signature="e#0#44#0" expanded="true" />
+            <element signature="e#0#44#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -790,7 +790,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#20#57#0" expanded="true" />
+            <element signature="e#20#57#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -852,13 +852,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/syhelpers/dataqueue.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="19" column="0" lean-forward="true" selection-start-line="19" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/syhelpers/tls.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
@@ -895,16 +888,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/syhelpers/log.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="75">
-          <caret line="5" column="24" lean-forward="false" selection-start-line="5" selection-start-column="5" selection-end-line="5" selection-end-column="24" />
-          <folding>
-            <marker date="1489745910124" expanded="true" signature="28:159" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/syhelpers/types.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="195">
@@ -913,19 +896,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/syssspy.py">
+    <entry file="file://$PROJECT_DIR$/syhelpers/log.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="23" column="0" lean-forward="false" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
-          <folding>
-            <element signature="e#20#57#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="75">
+          <caret line="5" column="24" lean-forward="false" selection-start-line="5" selection-start-column="5" selection-end-line="5" selection-end-column="24" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/syhandler/transport/reversetcp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-302">
+        <state relative-caret-position="1950">
           <caret line="136" column="0" lean-forward="true" selection-start-line="136" selection-start-column="0" selection-end-line="136" selection-end-column="0" />
           <folding>
             <element signature="e#0#40#0" expanded="true" />
@@ -933,57 +914,85 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/tls.ps1">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="960">
+          <caret line="64" column="1" lean-forward="true" selection-start-line="64" selection-start-column="1" selection-end-line="64" selection-end-column="1" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/reversetcp.ps1">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="327">
+          <caret line="45" column="45" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="45" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="885">
-          <caret line="59" column="20" lean-forward="false" selection-start-line="59" selection-start-column="8" selection-end-line="59" selection-end-column="20" />
+          <caret line="63" column="43" lean-forward="false" selection-start-line="63" selection-start-column="43" selection-end-line="63" selection-end-column="43" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syhelpers/dataqueue.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="330">
+          <caret line="22" column="24" lean-forward="true" selection-start-line="22" selection-start-column="24" selection-end-line="22" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syssspy.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="12" column="0" lean-forward="false" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/agent.ps1">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="358">
-          <caret line="28" column="48" lean-forward="true" selection-start-line="28" selection-start-column="48" selection-end-line="28" selection-end-column="48" />
+        <state relative-caret-position="388">
+          <caret line="37" column="36" lean-forward="true" selection-start-line="37" selection-start-column="36" selection-end-line="37" selection-end-column="36" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syplatform/powershell/message/message.ps1">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="450">
+          <caret line="36" column="0" lean-forward="false" selection-start-line="36" selection-start-column="0" selection-end-line="38" selection-end-column="5" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/powershell.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1232">
-          <caret line="322" column="62" lean-forward="false" selection-start-line="322" selection-start-column="56" selection-end-line="322" selection-end-column="62" />
-          <folding>
-            <element signature="e#0#44#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/syhelpers/encoding.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-159">
-          <caret line="63" column="43" lean-forward="false" selection-start-line="63" selection-start-column="43" selection-end-line="63" selection-end-column="43" />
-          <folding>
-            <element signature="e#0#11#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="460">
-          <caret line="408" column="51" lean-forward="true" selection-start-line="408" selection-start-column="51" selection-end-line="408" selection-end-column="51" />
-          <folding>
-            <element signature="e#0#19#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="342">
+          <caret line="431" column="0" lean-forward="true" selection-start-line="431" selection-start-column="0" selection-end-line="431" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/syplatform/powershell/transport/dns.ps1">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="23" column="15" lean-forward="true" selection-start-line="23" selection-start-column="15" selection-end-line="23" selection-end-column="15" />
+        <state relative-caret-position="-67">
+          <caret line="141" column="50" lean-forward="true" selection-start-line="141" selection-start-column="50" selection-end-line="141" selection-end-column="50" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/syhandler/transport/dns.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="465">
+          <caret line="376" column="23" lean-forward="true" selection-start-line="376" selection-start-column="23" selection-end-line="376" selection-end-column="23" />
+          <folding>
+            <element signature="e#0#19#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

