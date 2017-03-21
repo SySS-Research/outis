@@ -95,6 +95,33 @@ class Handler(ModuleBase):
         if stager:
             print_message("Use the following stager code:")
             print_text(stager)
+        else:
+            print_error("Failed to generate stager code")
+
+    def generateagent(self, filename, staged=False):
+        """
+        generates the agent code and writes it to the file
+        :param filename: name of the file to write to
+        :param staged: generate the staged form? this one is usually encoded and signed, so you may just want to
+            go with the default of False
+        :return: None
+        """
+
+        if not self.validate_options():
+            return
+
+        agent = self.platform.getagent(staged=staged)
+        if agent:
+            file = open(filename, 'wb')
+            if file:
+                file.write(agent)
+                file.close()
+                print_message("Wrote agent code to file {}".format(filename))
+            else:
+                print_error("Could not open file {} for writing".format(filename))
+        else:
+            print_error("Failed to generate agent code")
+
 
     def run(self):
         """

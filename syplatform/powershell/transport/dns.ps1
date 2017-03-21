@@ -129,17 +129,18 @@ function Transport-Dns-Open {
         $connection.dnstype = $type
         $res = Transport-Dns-Intern-SendQuery -Connection $connection -Content $COMMAND_PING -Commandflag $true
 
-        $res = New-Object String($res,1,$res.Length-1)
-        Write-Host $res
+        $leng = $res.Length - 1
+        $res = New-Object String($res,1,$leng)
+        #Write-Host $res
         if ($res -eq "PON") { # TODO: replace with $COMMAND_PONG somehow
             $dnstypefound=$true
-            Write-Host "Connection with DNS type $($connection.dnstype) possible"
+            #Write-Host "Connection with DNS type $($connection.dnstype) possible"
             break # TODO: break
         }
     }
 
     if(!$dnstypefound) {
-        Write-Host 'Error: failed to find dnstype'
+        Write-Host 'Error: failed to find dnstype for connection'
         exit(1)
     } else {
         Write-Host "Connection with DNS type $($connection.dnstype) possible"
@@ -202,9 +203,9 @@ function Transport-Dns-Intern-SendQuery {
 
     for ($t=0; $t -le $Connection.retries; $t++) {
         $command="nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)"
-        Write-Host $command
+        #Write-Host $command
         $c=[string](IEX $command 2>&1)
-        Write-Host ">>>>" $c "<<<<"
+        #Write-Host ">>>>" $c "<<<<"
 
         if ($Connection.dnstype -eq 'TXT') {
             if ($c.Contains('"')) {
@@ -224,10 +225,11 @@ function Transport-Dns-Intern-SendQuery {
     }
 
     # command sequence
-    if ($res[0] == [byte] 0x43) {
+    if ($res[0] -eq [byte] 0x43) {
         # TODO: command parsing
-        return $NULL
-    } elseif ($res[0] == [byte] 0x44) {
+        #Write-Host "command received"
+        return $res
+    } elseif ($res[0] -eq [byte] 0x44) {
         return $res
     } else {
         Write-Host "invalid DNS command byte received"
@@ -295,7 +297,7 @@ function Transport-Dns-Intern-SendAll {
             $bytes[$j] = $Content[$start + $j]
         }
         $res = Transport-Dns-Intern-SendQuery -Connection $Connection -Content $bytes -Commandflag $Commandflag
-        if ($res) {
+        if (($res) -and ($res[0] -ne [byte] 0x43)) { # not a command packet
             for($j=1; $j -lt $res.Length; ++$j) {
                 $Resultqueue.Enqueue($res[$j])
             }
@@ -308,12 +310,14 @@ function Transport-Dns-Intern-ConvertToHostname([byte[]]$data) {
 }
 
 function Transport-Dns-Intern-ConvertHexToByteArray($hex) {
-    # TODO: does not work yet !!!
-    $bytes = New-Object byte[$hex.Length / 2];
-    for ($i=0; i<$hex.Length; i += 2) {
-        bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+    <# # TODO: does not work yet !!!
+    $bytes = New-Object byte[]($hex.Length / 2);
+    for ($i=0; i -lt $hex.Length; i += 2) {
+        $bytes[$i / 2] = Convert.ToByte($hex.Substring($i, 2), 16);
     }
-    return bytes
+    return $bytes
+    #>
+    return $NULL
 }
 
 function Transport-Dns-Close([PSObject] $obj) {

@@ -162,7 +162,10 @@ class TransportDns (Transport, ModuleBase):
             return
 
         self.staged = staged
-        self.currentstagenum = 0
+        if not staged:
+            self.currentstagenum = -1
+        else:
+            self.currentstagenum = 0
 
         # mark backchannel to us from each DnsHandler instance
         DnsHandler.transport = self
@@ -261,7 +264,10 @@ class TransportDns (Transport, ModuleBase):
             return self.laststagepart
 
         if not self.staged:
-            print_error("stager request for TransportDns but its not staged, dropping")
+            if self.currentstagenum == stagepartnum:  # they try to request the last stage after end of staging
+                print_debug(DEBUG_MODULE, "request for last / empty stage part, ignoring")
+            else:
+                print_error("stager request for TransportDns but its not staged, dropping")
             return None
 
         if self.currentstagenum != stagepartnum:

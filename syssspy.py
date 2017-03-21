@@ -38,5 +38,7 @@ handler.setoption("CHANNELENCRYPTION", "NONE")
 
 handler.generatestager()
 
+handler.generateagent("/tmp/agentfile.txt")
+
 handler.run()
 

@@ -354,17 +354,21 @@ class PlatformPowershell(Platform, ModuleBase):
         print_debug(DEBUG_MODULE, "stager = {}".format(stager))
         return helps.powershell_launcher(stager, baseCmd="powershell.exe -Enc ")  # TODO: baseCmd
 
-    def getagent(self):
+    def getagent(self, staged=None):
         """
         Generate the full powershell agent for this setup if possible
+        :param staged: can be set to True or False to use that value, if not set self.isstaged() is used
         :return: encoded agent bytes
         """
 
+        if staged is None:
+            staged = self.isstaged()
+
         if self.options['AGENTTYPE']['Value'] == "DNSCAT2" or self.options['AGENTTYPE']['Value'] == "DNSCAT2DOWNLOADER":
-            agent = self.getagent_dnscat2()
+            agent = self.getagent_dnscat2(staged=staged)
 
         elif self.options['AGENTTYPE']['Value'] == "DEFAULT":
-            agent = self.getagent_default()
+            agent = self.getagent_default(staged=staged)
 
         else:
             print_error("AGENTTYPE is not defined")
@@ -382,7 +386,7 @@ class PlatformPowershell(Platform, ModuleBase):
         print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
 
         # add spaces if the agent is too short for staging with REVERSETCP
-        if self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
+        if staged and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             currentreallen = len(agent)
             if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
                 currentreallen += len(self.publickeyxml) + SIGNATURE_LEN_B64
@@ -391,7 +395,7 @@ class PlatformPowershell(Platform, ModuleBase):
                 agent += b' ' * (MIN_AGENT_LEN-currentreallen)
 
         # add spaces if the agent lenght is not aligned to 4 bytes with DNS and type A
-        if self.isstaged() and self.handler.options['TRANSPORT']['Value'] == "DNS" \
+        if staged and self.handler.options['TRANSPORT']['Value'] == "DNS" \
                 and self.handler.transport.options['DNSTYPE']['Value'] == "A":
             currentreallen = len(agent)
             if self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
@@ -401,7 +405,7 @@ class PlatformPowershell(Platform, ModuleBase):
                 currentreallen += 1
 
         # with stage authentication: publickey + signature + agentcode
-        if self.isstaged() and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
+        if staged and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
             self._initkeycertificate()
             if not self.publickeyxml:
                 print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml " +
@@ -412,7 +416,7 @@ class PlatformPowershell(Platform, ModuleBase):
                 agent = self.publickeyxml.encode('utf-8') + base64.b64encode(self._sign_data(agent)) + agent
 
         # encode agent with fingerprint as encodingkey if active
-        if self.isstaged() and self.options['STAGEENCODING']['Value'] == "TRUE":
+        if staged and self.options['STAGEENCODING']['Value'] == "TRUE":
             self._initkeycertificate()
             if not self.fingerprint:
                 print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate " +
@@ -424,24 +428,28 @@ class PlatformPowershell(Platform, ModuleBase):
                 agent = encryption.xor_encode(agent, self.fingerprint)
 
         # check length for REVERSETCP staging
-        if len(agent) > MAX_AGENT_LEN and self.isstaged() \
+        if len(agent) > MAX_AGENT_LEN and staged \
                 and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             print_error("agent is longer than stager buffer, staging will fail")
 
         return agent
 
-    def getagent_dnscat2(self):
+    def getagent_dnscat2(self, staged=None):
         """
         Return the full dnscat2-powershell agent string
+        :param staged: can be set to True or False to use that value, if not set self.isstaged() is used
         :return: agent string
         """
+
+        if staged is None:
+            staged = self.isstaged()
 
         if self.handler.options["TRANSPORT"]["Value"] != "DNS":
             print_error("dnscat2 must be used with DNS transport, hence the name!")
             return None
 
         # we need the fingerprint as a pre-shared secret
-        if self.isstaged():  # if staged, fingerprint was already included in the stager
+        if staged:  # if staged, fingerprint was already included in the stager
             secret = "$fp"
         else:
             self._initkeycertificate()
@@ -480,11 +488,15 @@ class PlatformPowershell(Platform, ModuleBase):
 
         return agent
 
-    def getagent_default(self):
+    def getagent_default(self, staged=None):
         """
         return the default syssspy agent code
+        :param staged: can be set to True or False to use that value, if not set self.isstaged() is used
         :return: agent string
         """
+
+        if staged is None:
+            staged = self.isstaged()
 
         agent = ""
 
