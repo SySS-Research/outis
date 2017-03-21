@@ -66,7 +66,17 @@ def dnshostencode(data, zone):
     """
 
     # TODO: sending 0-9A-Z would be better
-    return base64.b16encode(data) + b'.' + zone.encode('utf-8') + b'.'
+
+    res = b""
+    sdata = base64.b16encode(data)
+
+    # every 60 characters, we will add a dot
+    for i in range(len(sdata)):
+        res += sdata[i:i+1]
+        if (i+1) % 60 == 0 and (i+1) < len(sdata):
+            res += b'.'
+
+    return res + b'.' + zone.encode('utf-8') + b'.'
 
 
 def dnstxtencode(data):
@@ -87,7 +97,7 @@ def dnsip4encode(data):
     """
 
     if len(data) > 4 or len(data) < 4:
-        print_error("dnsip4encode: data is more or less than 4 bytes, cannot encode")
+        print_error("dnsip4encode: data ({}) is more or less than 4 bytes, cannot encode".format(data))
         return None
 
     return '{}.{}.{}.{}'.format(*data).encode("utf-8")
@@ -106,8 +116,8 @@ def dnsip6encode(data):
 
     res = b''
     reslen = 0
-    for b in data:
-        res += base64.b16encode(b)
+    for i in range(len(data)):
+        res += base64.b16encode(data[i:i+1])
         reslen += 1
         if reslen % 2 == 0:
             res += b':'

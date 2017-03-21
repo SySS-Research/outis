@@ -16,7 +16,6 @@ import dns
 import dns.message
 
 DEBUG_MODULE = "TransportDns"
-MAX_TXT_ENTRY_LEN = 250
 
 
 class TransportDns (Transport, ModuleBase):
@@ -274,10 +273,11 @@ class TransportDns (Transport, ModuleBase):
         self.server.server_close()
         self.server = None
 
-    def serve_stage(self, stagepartnum):
+    def serve_stage(self, stagepartnum, maxresplen):
         """
         should serve the next part of the staged agent, if the number matches
         :param stagepartnum: number of the stager part to get
+        :param maxresplen: maximal response lenght according to the DNS type used for encoding
         :return: part of the staged agent or None
         """
 
@@ -301,17 +301,8 @@ class TransportDns (Transport, ModuleBase):
             print_debug(DEBUG_MODULE, "out of stager data to send")
             return None  # end of data to send / stager code
 
-        # calculate lenght and maximal stage number
-        if self.options['DNSTYPE']['Value'] == "TXT":
-            maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)  # TODO: change for non Base64 encoding schemes
-        elif self.options['DNSTYPE']['Value'] == "A":
-            maxlendata = 4
-        else:
-            print_error("invalid DNSTYPE")
-            return None
-
         if self.maxstagenum is None:
-            self.maxstagenum = math.ceil(self.senddataqueue.length() / maxlendata) - 1
+            self.maxstagenum = math.ceil(self.senddataqueue.length() / maxresplen) - 1
 
         # create progress bar if selected
         if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
@@ -329,27 +320,32 @@ class TransportDns (Transport, ModuleBase):
                 print()
 
         # return next data segment and increase segment counter
-        nextdata = self.senddataqueue.read(maxlendata)
+        nextdata = self.senddataqueue.read(maxresplen)
         self.currentstagenum += 1
         self.laststagepart = nextdata
         return nextdata
 
-    def serve_main(self, indata):
+    def serve_main(self, indata, minresplen, maxresplen):
         """
-        serves a usual data response valid for the encoding DNS type
+        serves a usual data response which will be encoded into a matching DNS type
         :param indata: byte data that the agent send to us
+        :param minresplen: minimal response lenght according to the DNS type used for encoding (often 0)
+        :param maxresplen: maximal response lenght according to the DNS type used for encoding
         :return: byte data we want to send to the agent
         """
 
-        # TODO: remember to match strange encoding for DNS types
-        maxlendata = lenofb64decoded(MAX_TXT_ENTRY_LEN)
         datatosend = None
 
         commandflag, indata = TransportDns._decode_indata(indata)
 
         if commandflag:
             if indata == TransportDns.COMMAND_PING:
-                datatosend = TransportDns.COMMAND_PONG
+                if 4 < minresplen:
+                    datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_PONG,
+                                                              paddingbytes=minresplen-4)
+                else:
+                    datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_PONG)
+                return datatosend
             elif indata == TransportDns.COMMAND_PONG:
                 print_message("pong from agent received")
                 pass  # and answer normally
@@ -365,12 +361,18 @@ class TransportDns (Transport, ModuleBase):
         # TODO: implement end of connection and ping here aswell
 
         if not datatosend:
-            datatosend = self.senddataqueue.read(maxlendata)
+            datatosend = self.senddataqueue.read(maxresplen-1)  # 1 byte is needed for commands
 
         if datatosend:
-            datatosend = TransportDns._encode_outdata(False, datatosend)
+            if len(datatosend)+1 < minresplen:
+                datatosend = TransportDns._encode_outdata(False, datatosend, paddingbytes=minresplen-len(datatosend)-1)
+            else:
+                datatosend = TransportDns._encode_outdata(False, datatosend)
         else:
-            datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA)
+            if 4 < minresplen:
+                datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA, paddingbytes=minresplen-4)
+            else:
+                datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA)
 
         return datatosend
 
@@ -394,18 +396,25 @@ class TransportDns (Transport, ModuleBase):
         return commandflag, resdata
 
     @staticmethod
-    def _encode_outdata(commandflag, outdata):
+    def _encode_outdata(commandflag, outdata, paddingbytes=0):
         """
         encodes outgoing data
         :param commandflag: is it a command?
         :param outdata: byte data to encode
+        :param paddingbytes: if padding is needed, encode the number of padding bytes (1-15) into the commandbyte (only
+        if commandflag is False) and fill output data with padding (always)
         :return: encoded outdata
         """
 
+        if paddingbytes < 0 or paddingbytes > 15:
+            print_error("invalid paddingbyte number, should be between 0 and 15")
+            return None
+
         if commandflag:
-            outdata = b'C' + outdata
+            outdata = b'C' + outdata + b'X' * paddingbytes
         else:
-            outdata = b'D' + outdata
+            paddingnum = ord('D') + paddingbytes
+            outdata = bytes(chr(paddingnum), 'utf-8') + outdata + b'X' * paddingbytes
 
         return outdata
 
@@ -464,6 +473,9 @@ class DnsHandler(socketserver.BaseRequestHandler):
         if q.startswith("s") and q.strip("s").isdigit():  # stager request
             self.stagerrequest = True
             return int(q.strip("s"))  # we will not decode it further
+        elif q.startswith("S") and q.strip("S").isdigit():
+            self.stagerrequest = True
+            return int(q.strip("S"))
 
         # otherwise we expect a fully enrolled agent on the other side and decode
         try:
@@ -471,13 +483,14 @@ class DnsHandler(socketserver.BaseRequestHandler):
         except binascii.Error:
             return None
 
-    def _encode_response(self, rdata, dnstype):
+    def _encode_response(self, rdata):
         """
         encodes the response data to a form we can include in a DNS response of the given type
         :param rdata: data to include
-        :param dnstype: type to use for response, e.g. dns.rdatatype.TXT
         :return: encoded data
         """
+
+        dnstype = self._dns_type()
 
         if dnstype is dns.rdatatype.TXT:
             return dnstxtencode(rdata)
@@ -500,10 +513,54 @@ class DnsHandler(socketserver.BaseRequestHandler):
         :return: response (not yet encoded)
         """
 
-        if self.stagerrequest:  # stager request
-            return self.transport.serve_stage(qtext)
+        minresplen = self._get_minimal_response_length_for_type()
+        maxresplen = self._get_maximal_response_length_for_type()
 
-        return self.transport.serve_main(qtext)
+        if self.stagerrequest:  # stager request
+            return self.transport.serve_stage(qtext, maxresplen=maxresplen)
+
+        return self.transport.serve_main(qtext, minresplen=minresplen, maxresplen=maxresplen)
+
+    def _get_minimal_response_length_for_type(self):
+        """
+        returns the minimal possible byte length for this dns type to use in a single response
+        :return: length
+        """
+
+        dnstype = self._dns_type()
+
+        if dnstype is dns.rdatatype.TXT:
+            return 1
+        elif dnstype is dns.rdatatype.A:
+            return 4  # 4 bytes per IPv4 address, this is ok
+        elif dnstype is dns.rdatatype.CNAME or dnstype is dns.rdatatype.MX:
+            return 1
+        elif dnstype is dns.rdatatype.AAAA:
+            return 16  # 16 bytes per IPv6 address
+        else:
+            print_error("invalid DNSTYPE for encoding requested: {}".format(dnstype))
+            return None
+
+    def _get_maximal_response_length_for_type(self):
+        """
+        returns the maximal possible byte length for this dns type to use in a single response
+        :return: length
+        """
+
+        dnstype = self._dns_type()
+
+        if dnstype is dns.rdatatype.TXT:
+            return lenofb64decoded(250)  # TODO: or maybe more, what does the standard say?
+        elif dnstype is dns.rdatatype.A:
+            return 4  # 4 bytes per IPv4 address, this is ok
+        elif dnstype is dns.rdatatype.CNAME or dnstype is dns.rdatatype.MX:
+            return 100  # 250 bytes in total, using hexencoding 100 = 200 bytes in the hostname, which leaves a
+            # safe 50 for the zone and further additions
+        elif dnstype is dns.rdatatype.AAAA:
+            return 16  # 16 bytes per IPv6 address
+        else:
+            print_error("invalid DNSTYPE for encoding requested: {}".format(dnstype))
+            return None
 
     def _dns_type(self):
         """
@@ -582,11 +639,10 @@ class DnsHandler(socketserver.BaseRequestHandler):
                 if self.dnstype is not dns.rdatatype.PTR:
                     data = self._get_response(qtext)
                     if data:
-                        dnstype = self._dns_type()
-                        data = self._encode_response(data, dnstype)
+                        data = self._encode_response(data)
                         if data:
                             print_debug(DEBUG_MODULE, "responding with: {}".format(str(data, 'utf-8')))
-                            resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, dnstype,
+                            resp.answer.append(dns.rrset.from_text(q.name, 7600, dns.rdataclass.IN, self._dns_type(),
                                                                str(data, 'utf-8')))
                             socket.sendto(resp.to_wire(), self.client_address)
                         else:
