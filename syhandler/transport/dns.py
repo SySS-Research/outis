@@ -1,6 +1,7 @@
 import socketserver
 
 import binascii
+import ssl
 import threading
 
 import math
@@ -69,6 +70,7 @@ class TransportDns (Transport, ModuleBase):
             }
         }
         self.handler = handler
+        self.conn = None
         self.server = None
         self.staged = False
         self.currentstagenum = 0
@@ -188,8 +190,13 @@ class TransportDns (Transport, ModuleBase):
             print_error("Connection not open")
             return
 
-        # add the data to the send queue
-        self.senddataqueue.add(data)
+        # if wrapped by a TLS connection, just write into that one
+        if self.conn:
+            self.conn.write(data)
+
+        # else, add the data to the send queue normally
+        else:
+            self.senddataqueue.write(data)
 
         # block until send
         while self.senddataqueue.has_data():
@@ -206,12 +213,22 @@ class TransportDns (Transport, ModuleBase):
             print_error("Connection not open")
             return
 
-        # if there is no data, block until there is
-        while not self.recvdataqueue.has_data():
-            pass
+        # if wrapped by a TLS connection, read from there
+        if self.conn:
+            # if there is no data in either queue, block until there is
+            while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
+                pass
+            data = self.conn.read(leng)
+
+        # else, read from the dataqueue normally
+        else:
+            # if there is no data, block until there is
+            while not self.recvdataqueue.has_data():
+                pass
+            data = self.recvdataqueue.read(leng)
 
         # finish even if less data than requested, higher level must handle this
-        return self.recvdataqueue.get(leng)
+        return data
 
     def upgradefromstager(self):
         """
@@ -228,16 +245,19 @@ class TransportDns (Transport, ModuleBase):
         :return: None
         """
 
-        # TODO: implement
-        print_error("DNS + TLS is not implemented yet")
-        return
-
         # TODO: newer TLS version?
-        #context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         # TODO: load the certificate from the correct option path
-        #context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
-        #self.conn = context.wrap_socket(self.conn, server_side=True)
-        #print_message("Upgrade to TLS done")
+        context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
+        self.conn = context.wrap_bio(self.recvdataqueue.memorybio, self.senddataqueue.memorybio, server_side=True)
+        print_message("Waiting for connection and TLS handshake...")
+        while True:
+            try:
+                self.conn.do_handshake()
+                break
+            except (ssl.SSLWantReadError, ssl.SSLSyscallError):
+                pass
+        print_message("Upgrade to TLS done")
 
     def close(self):
         """
@@ -307,7 +327,7 @@ class TransportDns (Transport, ModuleBase):
                 print()
 
         # return next data segment and increase segment counter
-        nextdata = self.senddataqueue.get(maxlendata)
+        nextdata = self.senddataqueue.read(maxlendata)
         self.currentstagenum += 1
         self.laststagepart = nextdata
         return nextdata
@@ -338,12 +358,12 @@ class TransportDns (Transport, ModuleBase):
             elif indata == TransportDns.COMMAND_NODATA:
                 pass  # do not add any data to recvdataqueue but answer normally
         else:
-            self.recvdataqueue.add(indata)
+            self.recvdataqueue.write(indata)
 
         # TODO: implement end of connection and ping here aswell
 
         if not datatosend:
-            datatosend = self.senddataqueue.get(maxlendata)
+            datatosend = self.senddataqueue.read(maxlendata)
 
         if datatosend:
             datatosend = TransportDns._encode_outdata(False, datatosend)
@@ -522,8 +542,6 @@ class DnsHandler(socketserver.BaseRequestHandler):
             return
 
         for q in msg.question:
-            ptrquery = False
-
             print_debug(DEBUG_MODULE, "query from {}: {}".format(self.client_address[0], str(q)))
 
             if "IN PTR" in str(q):

@@ -1,3 +1,5 @@
+import ssl
+
 
 class DataQueue:
     """
@@ -9,30 +11,7 @@ class DataQueue:
         initialize a new storage queue
         """
 
-        self.queue = b""
-
-    def add(self, data):
-        """
-        add the data to the send queue
-        :param data: data to send
-        :return: None
-        """
-
-        self.queue += data
-
-    def get(self, leng):
-        """
-        get and remove next len bytes from the send queue
-        :param leng: byte len to get and remove
-        :return: data
-        """
-
-        if leng > len(self.queue):
-            leng = len(self.queue)
-
-        data = self.queue[:leng]
-        self.queue = self.queue[leng:]
-        return data
+        self.memorybio = ssl.MemoryBIO()
 
     def has_data(self):
         """
@@ -40,7 +19,7 @@ class DataQueue:
         :return: True iff the queue has data
         """
 
-        return len(self.queue) > 0
+        return self.memorybio.pending > 0
 
     def length(self):
         """
@@ -48,5 +27,24 @@ class DataQueue:
         :return: length of the data in the queue
         """
 
-        return len(self.queue)
+        return self.memorybio.pending
+
+    def read(self, leng=-1):
+        """
+        reads up to leng bytes from the buffer. If n is not specified or negative, all bytes are returned.
+        :param leng: length of bytes to read
+        :return: bytes
+        """
+
+        return self.memorybio.read(leng)
+
+    def write(self, buf):
+        """
+        Write the bytes from buf to the buffer. The buf argument must be an object supporting the buffer protocol.
+        The return value is the number of bytes written, which is always equal to the length of buf.
+        :param buf: bytes to write to the buffer
+        :return: number of bytes written
+        """
+
+        return self.memorybio.write(buf)
 

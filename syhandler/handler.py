@@ -122,7 +122,6 @@ class Handler(ModuleBase):
         else:
             print_error("Failed to generate agent code")
 
-
     def run(self):
         """
         Run the listener and handle any communication with agents

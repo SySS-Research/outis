@@ -64,12 +64,14 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Options'       :   ("DEFAULT", "DNSCAT2", "DNSCAT2DOWNLOADER")
             },
             'TIMEOUT': {
-                'Description'   :   'Number of seconds to wait for each request (currently only supported by DNS stagers)',
+                'Description'   :   'Number of seconds to wait for each request (currently only supported by ' +
+                                    'DNS stagers)',
                 'Required'      :   True,
                 'Value'         :   9
             },
             'RETRIES': {
-                'Description'   :   'Retry each request for this number of times (currently only supported by DNS stagers)',
+                'Description'   :   'Retry each request for this number of times (currently only supported by ' +
+                                    'DNS stagers)',
                 'Required'      :   True,
                 'Value'         :   2
             },
@@ -496,6 +498,7 @@ class PlatformPowershell(Platform, ModuleBase):
         """
 
         if staged is None:
+            # noinspection PyUnusedLocal
             staged = self.isstaged()
 
         agent = ""
@@ -557,7 +560,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
         elif self.handler.options['TRANSPORT']['Value'] == "DNS":
             zone = self.handler.transport.options['ZONE']['Value'].rstrip(".")
-            server = self.handler.transport.options['DNSSERVER']['Value']
+            server = self.handler.transport.options['DNSSERVER']['Value'] or ""
             timeout = self.options['TIMEOUT']['Value']
             retries = self.options['RETRIES']['Value']
             print_debug(DEBUG_MODULE, "zone = {}, server = {}, timeout = {}, retries = {}"
@@ -576,5 +579,10 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # replace channel encryption property
         agent = agent.replace('SYREPLACE_CHANNELENCRYPTION', self.handler.options['CHANNELENCRYPTION']['Value'])
+
+        # add fingerprint if not staged and needed for TLS
+        if not staged and self.handler.options['CHANNELENCRYPTION']['Value'] == "TLS":
+            self._initkeycertificate()
+            agent = agent.replace('SYREPLACE_SERVERCERTFINGERPRINT', self.fingerprint)
 
         return agent

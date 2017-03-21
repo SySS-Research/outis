@@ -47,6 +47,7 @@ class Message:
         print_debug(DEBUG_MODULE+" Parse", "type: "+str(self.type))
         print_debug(DEBUG_MODULE+" Parse", "length: "+str(self.length))
         while len(buf) < self.length:
+            print_debug(DEBUG_MODULE + " Parse", "trying to get {} more bytes".format(self.length))
             morebuf = transport.receive(leng=min(1024, self.length))
             if not morebuf:
                 print_error("Connection ended before end of message, message so far: "+str(buf))

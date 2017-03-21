@@ -177,7 +177,7 @@ function Transport-Dns-Intern-SendQuery {
         $Commandflag = $false
     )
 
-    if (($Content.Length -gt 250) -or ($Content.Length -lt 1)) {
+    if (($Content.Length -gt 100) -or ($Content.Length -lt 1)) {
         return $NULL
     }
 
@@ -222,6 +222,12 @@ function Transport-Dns-Intern-SendQuery {
         }
 
         # TODO: break this loop if answer
+    }
+
+    # no success, print error message
+    if (!$res) {
+        Write-Host "ERROR: no answer received"
+        return $NULL
     }
 
     # command sequence
@@ -283,7 +289,7 @@ function Transport-Dns-Intern-SendAll {
         Write-Host "ERROR in Transport-Dns-Intern-SendAll: wrongly addressed send array"
     }
 
-    $blocksize = 250
+    $blocksize = 100
     $blockstosend = 0
     while($blockstosend * $blocksize -lt $Count) {
         $blockstosend++
@@ -306,7 +312,15 @@ function Transport-Dns-Intern-SendAll {
 }
 
 function Transport-Dns-Intern-ConvertToHostname([byte[]]$data) {
-    return ([System.BitConverter]::ToString($data).split("-") -join "")
+    $res = ""
+    $sdata = ([System.BitConverter]::ToString($data).split("-") -join "")
+    for ($i=0;$i -lt $sdata.Length; ++$i) {
+        $res += $sdata[$i]
+        if ((($i+1) % 60 -eq 0) -and (($i+1) -ne $sdata.Length)) {
+            $res += '.'
+        }
+    }
+    return $res
 }
 
 function Transport-Dns-Intern-ConvertHexToByteArray($hex) {
