@@ -246,6 +246,7 @@ class TransportDns (Transport, ModuleBase):
         """
 
         # TODO: newer TLS version?
+        # noinspection PyUnresolvedReferences
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         # TODO: load the certificate from the correct option path
         context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
@@ -285,7 +286,8 @@ class TransportDns (Transport, ModuleBase):
 
         if not self.staged:
             if self.handler.platform.options["STAGED"]["Value"] == "TRUE":  # staging ended recently
-                print_debug(DEBUG_MODULE, "request for stage part {}, but not staging anymore, ignoring".format(stagepartnum))
+                print_debug(DEBUG_MODULE, "request for stage part {}, but not staging anymore, ignoring"
+                            .format(stagepartnum))
             else:
                 print_error("stager request for TransportDns but its not staged, dropping")
             return None
