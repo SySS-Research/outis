@@ -57,10 +57,11 @@ function Transport-Tls-Receive([PSObject] $obj, [Int32] $bytestoread) {
 	while ($numb -lt $bytestoread) {
 		$numb += $obj.reader.Read($buffer, $numb, $bytestoread-$numb)
 	}		
-	return $buffer
+	return [System.Text.Encoding]::UTF8.GetBytes($buffer)
 }
 
-function Transport-Tls-Send([PSObject] $obj, $data) {
-    $obj.writer.Write($data)
+function Transport-Tls-Send([PSObject] $obj, [byte[]] $data) {
+    $senddata = [System.Text.Encoding]::UTF8.GetString($data).ToCharArray()
+    $obj.writer.Write($senddata)
 }
 

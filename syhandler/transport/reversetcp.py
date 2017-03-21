@@ -118,9 +118,6 @@ class TransportReverseTcp (Transport, ModuleBase):
 
         print_message("TCP transport listening on {}:{}".format(*lparams))
 
-        import time
-        time.sleep(30)
-
         self.conn, addr = self.socket.accept()
         print_message("Connection from {}:{}".format(*addr))
    

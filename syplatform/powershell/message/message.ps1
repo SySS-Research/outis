@@ -31,7 +31,7 @@ function Message-Create {
 
 function Message-SendToTransport([PSObject] $msg, [PSObject] $transport) {
 	$len = [System.Net.IPAddress]::HostToNetworkOrder([Int32]$msg.leng)
-	$data = New-Object byte[]($msg.leng+5)
+	$data = New-Object byte[]($msg.leng+$MESSAGE_HEADER_LEN)
 	$data[0] = [byte] $msg.mtype
 	$lendata = [BitConverter]::GetBytes([Int32] $len)
 	for ($i=0; $i -lt $lendata.Length; ++$i) {
@@ -62,7 +62,7 @@ function Message-ParseFromTransport([PSObject] $transport) {
     }
 }
 
-function Send-ToTransport([PSObject] $transport, $data) {
+function Send-ToTransport([PSObject] $transport, [byte[]] $data) {
     if ($CHANNELENCRYPTION -eq "NONE") {
         if ($CONNECTIONMETHOD -eq "REVERSETCP") {
             $buf = Transport-ReverseTcp-Send $transport $data
