@@ -31,7 +31,7 @@ class DataQueue:
 
     def read(self, leng=-1):
         """
-        reads up to leng bytes from the buffer. If n is not specified or negative, all bytes are returned.
+        reads up to leng bytes from the buffer. If leng is not specified or negative, all bytes are returned.
         :param leng: length of bytes to read
         :return: bytes
         """

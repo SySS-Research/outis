@@ -31,8 +31,7 @@ class Transport:
         """
 
         from ..message.message import Message
-        message = Message()
-        message.parseFromTransport(self)
+        message = Message.parseFromTransport(self)
         return message
 
     def sendmessage(self, message):

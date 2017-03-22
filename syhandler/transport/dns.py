@@ -50,7 +50,8 @@ class TransportDns (Transport, ModuleBase):
                 'Value'         :   "53"
             },
             'DNSTYPE': {
-                'Description'   :   'DNS type to use for the connection',
+                'Description'   :   'DNS type to use for the connection (stager only, the agent will enumerate all ' +
+                                    'supported types on its own)',
                 'Required'      :   True,
                 'Value'         :   "TXT",
                 'Options'       :   ("TXT", "A")

@@ -7,13 +7,13 @@ from syhelpers.log import activate_debug
 #installPath = os.path.abspath(os.path.dirname(__file__))
 #print_debug("Main", "installPath = {}".format(installPath))
 
-activate_debug("Main")
-activate_debug("Handler")
-activate_debug("PlatformPowershell")
+#activate_debug("Main")
+#activate_debug("Handler")
+#activate_debug("PlatformPowershell")
 #activate_debug("TransportDns")
-activate_debug("TransportReverseTcp")
-activate_debug("Message Parse")
-activate_debug("Message Create")
+#activate_debug("TransportReverseTcp")
+#activate_debug("Message Parse")
+#activate_debug("Message Create")
 
 handler = Handler()
 

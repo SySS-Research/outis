@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 import os
 
+from syhandler.message.channel import Channel
 from syhelpers.files import sanatizefilename
 from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
-from .message.message import Message
+from .message.message import Message, MessageDownloadRequest
 from syplatform.powershell.powershell import PlatformPowershell
 from syhelpers.log import *
 from syhelpers.modulebase import ModuleBase
@@ -14,6 +15,9 @@ DEBUG_MODULE = "Handler"
 
 class Handler(ModuleBase):
     """ Base handler for all interactions with agents """
+
+    # maximal possible channel id = MAXUINT16
+    MAX_CHANNELID = 32768
 
     # noinspection PyMissingConstructor
     def __init__(self):
@@ -44,6 +48,7 @@ class Handler(ModuleBase):
         self.transport = TransportReverseTcp(self)
         #TODO: CHANNELENCRYPTION?
         self.platform = PlatformPowershell(self)
+        self.channels = {}
     
     def setoption(self, name, value):
         """
@@ -153,15 +158,21 @@ class Handler(ModuleBase):
                 if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
                     self.transport.upgradetotls()
 
-                message0 = Message()
-                message0.create(0x01, b'Test0')
+                self.channels[0] = Channel()
+
+                # send a hello request to the agent
+                message0 = Message(Message.TYPE_MESSAGE, Message.CHANNEL_COMMAND, b'Hello from Handler')
                 self.transport.sendmessage(message0)
 
+                # receive a hello request from the agent
                 message1 = self.transport.receivemessage()
+                self.handleMessage(message1)
 
-                message2 = Message()
-                message2.create(0x01, b'TestBack')
-                self.transport.sendmessage(message1)
+                self.download("c:\\Users\\fsteglich\\Desktop\\test1.ps1", "/tmp/a")
+
+                while True:
+                    nextmessage = self.transport.receivemessage()
+                    self.handleMessage(nextmessage)
 
         except KeyboardInterrupt:
             print_error("User interrupt, exiting...")
@@ -181,3 +192,79 @@ class Handler(ModuleBase):
             ruby = "/usr/bin/ruby"
             scriptpath = sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2/server/dnscat2.rb")
             os.execv(ruby, [ruby, scriptpath, "--no-cache", "--secret", secret, zone])
+
+    def handleMessage(self, message):
+        """
+        handle the content of a received message
+        :param message: message to handle
+        :return: True iff handled successfully
+        """
+
+        if message.channelnumber == Message.CHANNEL_COMMAND:
+            if message.type == Message.TYPE_COMMAND:
+                # TODO: implement command messages
+                return False
+            elif message.type == Message.TYPE_MESSAGE:
+                print_message("AGENT: {}".format(message.content.decode('utf-8')))
+                return True
+            elif message.type == Message.TYPE_ERRORMESSAGE:
+                print_error("AGENT: {}".format(message.content.decode('utf-8')))
+                return True
+            else:
+                # TODO: implement further commands
+                print_error("message with invalid type received: {}".format(message.type))
+                return False
+        else:
+            if message.channelnumber not in self.channels:
+                print_error("message with channel number {} received, but channel is unknown, dropping"
+                            .format(message.channelnumber))
+                return False
+            elif self.channels[message.channelnumber].isReserved():
+                self.channels[message.channelnumber].setOpen()
+            elif self.channels[message.channelnumber].isClosed():
+                self.transport.sendmessage(Message(Message.TYPE_EOC, message.channelnumber, b''))
+                return False
+
+            if message.type == Message.TYPE_DATA:
+                self.channels[message.channelnumber].write(message.content)
+            elif message.type == Message.TYPE_EOC:
+                self.channels[message.channelnumber].setClose()
+            else:
+                print_error("received invalid type for channel: {}".format(message.type))
+
+            # TODO: implement further channels functions
+            return False
+
+    def _reservefreechannelid(self):
+        """
+        returns the next free channel id and reserves it for a channel
+        :return: id or None if not successfull
+        """
+
+        for i in range(1, Handler.MAX_CHANNELID):
+            if i not in self.channels:
+                self.channels[i] = Channel()
+                return i
+
+        return None
+
+
+    def download(self, remotefilename, localfilename):
+        """
+        should download the remote file and write the content to the local file
+        :param remotefilename: string of the remote file to download
+        :param localfilename: string of the local file to write
+        :return: None
+        """
+
+        channelid = self._reservefreechannelid()
+        if not channelid:
+            print_error("could not reserve a channel id for the download")
+            return
+
+        # send file download request to agent
+        downloadrequest = MessageDownloadRequest(remotefilename, downloadchannelid=channelid)
+        self.transport.sendmessage(downloadrequest)
+
+
+        # TODO: implement the rest...

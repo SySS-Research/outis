@@ -3,7 +3,6 @@ from ..transport.transport import Transport
 from syhelpers.log import *
 import struct
 
-MESSAGE_HEADER_LEN = 5
 DEBUG_MODULE = "Message"
 
 
@@ -14,68 +13,111 @@ class Message:
     Everything should be network byte order
     """
 
-    def __init__(self):
-        self.type = None
-        self.length = None
-        self.content = None
-        self.ready = False
+    # bytes in the message header
+    HEADER_LEN = 7
 
-    def parseFromTransport(self, transport):
-        """ parse a message object from the agent over the given transport object """
+    # this channel should be used for all commands
+    CHANNEL_COMMAND = 0
+
+    # types for messages
+    TYPE_COMMAND = 0
+    TYPE_MESSAGE = 1
+    TYPE_ERRORMESSAGE = 2
+    TYPE_DOWNLOADCOMMAND = 10
+    TYPE_DATA = 200
+    TYPE_EOC = 400
+
+    def __init__(self, mtype=None, channelnumber=None, content=None):
+        """
+        create a new message with the given parameters
+        :param mtype: message type
+        :param channelnumber: channel of the message
+        :param content: data byte content of the message
+        """
+
+        self.type = mtype
+        self.channelnumber = channelnumber
+        self.length = len(content)
+        print_debug(DEBUG_MODULE + " Create", "type: " + str(self.type))
+        print_debug(DEBUG_MODULE + " Create", "channelnumber: " + str(self.channelnumber))
+        print_debug(DEBUG_MODULE + " Create", "length: " + str(self.length))
+        self.content = content
+        print_debug(DEBUG_MODULE + " Create", "content: " + str(self.content))
+        self.ready = True
+
+    @staticmethod
+    def parseFromTransport(transport):
+        """
+        parse a message object from the agent over the given transport object
+        :param transport: the transport to read from
+        :return: message object or None if failed
+        """
         
         if not isinstance(transport, Transport):
             print_error(str(transport)+" is not a transport")
-            return
+            return None
         
         buf = b''
-        while len(buf) < MESSAGE_HEADER_LEN:
-            morebuf = transport.receive(leng=MESSAGE_HEADER_LEN-len(buf))
+        while len(buf) < Message.HEADER_LEN:
+            morebuf = transport.receive(leng=Message.HEADER_LEN-len(buf))
             if not morebuf:
                 break
             buf += morebuf
         if not buf:
             print_error("Invalid empty message")
-            return
-        if len(buf) < MESSAGE_HEADER_LEN:
+            return None
+        if len(buf) < Message.HEADER_LEN:
             print_error("Invalid message (too short): "+str(buf))
-            return
+            return None
         
-        print_debug(DEBUG_MODULE+" Parse", "header: "+str(buf[:MESSAGE_HEADER_LEN]))
-        self.type, self.length = struct.unpack("!BI", buf[:MESSAGE_HEADER_LEN])
-        buf = buf[MESSAGE_HEADER_LEN:]
+        print_debug(DEBUG_MODULE+" Parse", "header: "+str(buf[:Message.HEADER_LEN]))
+        mtype, channelnumber, length = struct.unpack("!BHI", buf[:Message.HEADER_LEN])
+        buf = buf[Message.HEADER_LEN:]
         
-        print_debug(DEBUG_MODULE+" Parse", "type: "+str(self.type))
-        print_debug(DEBUG_MODULE+" Parse", "length: "+str(self.length))
-        while len(buf) < self.length:
-            print_debug(DEBUG_MODULE + " Parse", "trying to get {} more bytes".format(self.length))
-            morebuf = transport.receive(leng=min(1024, self.length))
+        print_debug(DEBUG_MODULE + " Parse", "type: " + str(mtype))
+        print_debug(DEBUG_MODULE + " Parse", "channelnumber: " + str(channelnumber))
+        print_debug(DEBUG_MODULE + " Parse", "length: " + str(length))
+        while len(buf) < length:
+            print_debug(DEBUG_MODULE + " Parse", "trying to get {} more bytes".format(length))
+            morebuf = transport.receive(leng=min(1024, length))
             if not morebuf:
                 print_error("Connection ended before end of message, message so far: "+str(buf))
-                return
+                return None
             buf += morebuf
         
-        self.content = buf[:self.length]
-        self.ready = True
-        print_debug(DEBUG_MODULE+" Parse", "content: "+str(self.content))
-        print_debug(DEBUG_MODULE+" Parse", "additionaldata: "+str(buf[self.length:]))
-        
-    def create(self, typ, content):
-        """ create a new message from these fields """
+        content = buf[:length]
+        print_debug(DEBUG_MODULE+" Parse", "content: "+str(content))
+        print_debug(DEBUG_MODULE+" Parse", "additionaldata: "+str(buf[length:]))
 
-        self.type = typ
-        self.length = len(content)
-        print_debug(DEBUG_MODULE+" Create", "type: "+str(self.type))
-        print_debug(DEBUG_MODULE+" Create", "length: "+str(self.length))
-        self.content = content
-        print_debug(DEBUG_MODULE+" Create", "content: "+str(self.content))
-        self.ready = True
-    
+        return Message(mtype=mtype, channelnumber=channelnumber, content=content)
+
     def sendToTransport(self, transport):
-        """ send the message over the given transport object to the agent """
+        """
+        send the message over the given transport object to the agent
+        :param transport: transport object to write to
+        :return: None
+        """
 
         if not isinstance(transport, Transport):
             print_error(str(transport)+" is not a transport")
             return
         
-        buf = struct.pack("!BI", self.type, self.length) + self.content
+        buf = struct.pack("!BHI", self.type, self.channelnumber, self.length) + self.content
         transport.send(buf)
+
+
+class MessageDownloadRequest (Message):
+    """
+    A download request message. Send this to the agent if you like to get a file.
+    """
+
+    def __init__(self, filetodownload, downloadchannelid):
+        """
+        create a new message with a download request
+        :param filetodownload: string name of the remote file to download
+        :param downloadchannelid: channel number for the download stream to open
+        """
+
+        content = struct.pack("!H", downloadchannelid) + filetodownload.encode('utf-8')
+        Message.__init__(self, mtype=Message.TYPE_DOWNLOADCOMMAND, channelnumber=Message.CHANNEL_COMMAND,
+                         content=content)
