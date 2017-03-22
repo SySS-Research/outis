@@ -73,11 +73,13 @@ class TransportDns (Transport, ModuleBase):
         self.server = None
         self.staged = False
         self.currentstagenum = 0
+        self.currentnum = -1
         self.senddataqueue = DataQueue()
         self.recvdataqueue = DataQueue()
         self.progress = None
         self.maxstagenum = None
         self.laststagepart = None
+        self.lastpart = None
     
     def setoption(self, name, value):
         """
@@ -237,6 +239,8 @@ class TransportDns (Transport, ModuleBase):
 
         # server stays open, we just accept no staging anymore
         self.staged = False
+        self.lastpart = None
+        self.currentnum = -1
 
     def upgradetotls(self):
         """
@@ -325,32 +329,44 @@ class TransportDns (Transport, ModuleBase):
         self.laststagepart = nextdata
         return nextdata
 
-    def serve_main(self, indata, minresplen, maxresplen):
+    def serve_main(self, requestnum, indata, minresplen, maxresplen):
         """
         serves a usual data response which will be encoded into a matching DNS type
+        :param requestnum: number of the request, to distinguish new from old requests
         :param indata: byte data that the agent send to us
         :param minresplen: minimal response lenght according to the DNS type used for encoding (often 0)
         :param maxresplen: maximal response lenght according to the DNS type used for encoding
         :return: byte data we want to send to the agent
         """
 
+        if self.currentnum == -1:
+            print_message("Initial connection with new agent started")
+            self.currentnum = requestnum
+            # TODO: what happens on a overflow of the requestnum???
+
+        if self.currentnum - 1 == requestnum and self.lastpart:
+            return self.lastpart
+
+        if self.currentnum != requestnum:
+            print_debug(DEBUG_MODULE, "request with different request number, expected: {}, received: {}".format(
+                self.currentnum, requestnum))
+            return None  # do not answer to not provoke inconsistancies
+
         datatosend = None
+        dataiscommand = False
 
         commandflag, indata = TransportDns._decode_indata(indata)
 
         if commandflag:
             if indata == TransportDns.COMMAND_PING:
-                if 4 < minresplen:
-                    datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_PONG,
-                                                              paddingbytes=minresplen-4)
-                else:
-                    datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_PONG)
-                return datatosend
+                datatosend = TransportDns.COMMAND_PONG
+                dataiscommand = True
             elif indata == TransportDns.COMMAND_PONG:
                 print_message("pong from agent received")
                 pass  # and answer normally
             elif indata == TransportDns.COMMAND_ENDOFCONNECTION:
                 datatosend = TransportDns.COMMAND_ENDOFCONNECTION
+                dataiscommand = True
                 print_error("DNS agent ended connection")
                 # TODO: close our part of the connection
             elif indata == TransportDns.COMMAND_NODATA:
@@ -360,20 +376,24 @@ class TransportDns (Transport, ModuleBase):
 
         # TODO: implement end of connection and ping here aswell
 
+        # if no command to send, send the next sendqueue content
         if not datatosend:
             datatosend = self.senddataqueue.read(maxresplen-1)  # 1 byte is needed for commands
 
+        # if still nothing, send an empty response
+        if not datatosend:
+            datatosend = TransportDns.COMMAND_NODATA
+            dataiscommand = True
+
         if datatosend:
             if len(datatosend)+1 < minresplen:
-                datatosend = TransportDns._encode_outdata(False, datatosend, paddingbytes=minresplen-len(datatosend)-1)
+                datatosend = TransportDns._encode_outdata(dataiscommand, datatosend,
+                                                          paddingbytes=minresplen-len(datatosend)-1)
             else:
-                datatosend = TransportDns._encode_outdata(False, datatosend)
-        else:
-            if 4 < minresplen:
-                datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA, paddingbytes=minresplen-4)
-            else:
-                datatosend = TransportDns._encode_outdata(True, TransportDns.COMMAND_NODATA)
+                datatosend = TransportDns._encode_outdata(dataiscommand, datatosend)
 
+        self.currentnum += 1
+        self.lastpart = datatosend
         return datatosend
 
     @staticmethod
@@ -472,14 +492,14 @@ class DnsHandler(socketserver.BaseRequestHandler):
 
         if q.startswith("s") and q.strip("s").isdigit():  # stager request
             self.stagerrequest = True
-            return int(q.strip("s"))  # we will not decode it further
+            return int(q.strip("s")), b''  # we will not decode it further
         elif q.startswith("S") and q.strip("S").isdigit():
             self.stagerrequest = True
-            return int(q.strip("S"))
+            return int(q.strip("S")), b''
 
         # otherwise we expect a fully enrolled agent on the other side and decode
         try:
-            return dnshostdecode(q)
+            return int(r), dnshostdecode(q)
         except binascii.Error:
             return None
 
@@ -506,9 +526,10 @@ class DnsHandler(socketserver.BaseRequestHandler):
             print_error("invalid DNSTYPE for encoding requested: {}".format(dnstype))
             return None
 
-    def _get_response(self, qtext):
+    def _get_response(self, requestnum, qtext):
         """
         finds the response for the given query text
+        :param requestnum: number of the request
         :param qtext: query to respond to (already decoded)
         :return: response (not yet encoded)
         """
@@ -517,9 +538,9 @@ class DnsHandler(socketserver.BaseRequestHandler):
         maxresplen = self._get_maximal_response_length_for_type()
 
         if self.stagerrequest:  # stager request
-            return self.transport.serve_stage(qtext, maxresplen=maxresplen)
+            return self.transport.serve_stage(requestnum, maxresplen=maxresplen)
 
-        return self.transport.serve_main(qtext, minresplen=minresplen, maxresplen=maxresplen)
+        return self.transport.serve_main(requestnum, qtext, minresplen=minresplen, maxresplen=maxresplen)
 
     def _get_minimal_response_length_for_type(self):
         """
@@ -606,6 +627,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
             if "IN PTR" in str(q):
                 self.dnstype = dns.rdatatype.PTR
                 qtext = str(q.name)
+                requestnum = -1
 
             elif not self._is_in_zone(q.name):
                 self.dnstype = None
@@ -613,11 +635,11 @@ class DnsHandler(socketserver.BaseRequestHandler):
                 continue
 
             else:
-                qtext = self._decode_query(q.name)
+                requestnum, qtext = self._decode_query(q.name)
                 if qtext is None:
                     print_error("decoding failed for query: " + str(q))
                     continue
-                print_debug(DEBUG_MODULE, "decoded qtext = {}".format(qtext))
+                print_debug(DEBUG_MODULE, "requestnum = {}, decoded qtext = {}".format(requestnum, qtext))
 
                 if "IN TXT" in str(q):
                     self.dnstype = dns.rdatatype.TXT
@@ -637,7 +659,7 @@ class DnsHandler(socketserver.BaseRequestHandler):
             resp.set_rcode(0)
             if resp:
                 if self.dnstype is not dns.rdatatype.PTR:
-                    data = self._get_response(qtext)
+                    data = self._get_response(requestnum, qtext)
                     if data:
                         data = self._encode_response(data)
                         if data:
