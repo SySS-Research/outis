@@ -1,5 +1,7 @@
 from syhelpers.dataqueue import DataQueue
-from syhelpers.log import print_error, print_message
+from syhelpers.log import print_error, print_message, print_debug
+
+DEBUG_MODULE = "Channel"
 
 
 class Channel:
@@ -55,7 +57,7 @@ class Channel:
 
         return self.state == "CLOSED"
 
-    def write(self, data):
+    def writeFromSend(self, data):
         """
         writes data to this channel
         :param data: data to write to the channel
@@ -67,10 +69,9 @@ class Channel:
             return
 
         # TODO: remove the message here
-        print_message("received data in channel: {}".format(data))
+        print_debug(DEBUG_MODULE, "received data in channel: {}".format(data))
 
         self.receivequeue.write(data)
-        return
 
     def read(self, leng=-1):
         """
@@ -80,3 +81,11 @@ class Channel:
         """
 
         return self.receivequeue.read(leng)
+
+    def has_data(self):
+        """
+        returns True iff the channel has data to read
+        :return: True iff the channel has data to read
+        """
+
+        return self.receivequeue.has_data()

@@ -538,6 +538,11 @@ class PlatformPowershell(Platform, ModuleBase):
         agent += f.read()
         f.close()
 
+        # add channel basics
+        f = open(self.platformpath + "/message/channel.ps1", 'r')
+        agent += f.read()
+        f.close()
+
         # add agent base code
         f = open(self.platformpath + "/agent.ps1", 'r')
         agent += f.read()

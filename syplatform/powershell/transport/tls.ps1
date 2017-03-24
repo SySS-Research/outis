@@ -32,9 +32,8 @@ function Transport-Tls-Open {
     $tlsStream = New-Object System.Net.Security.SslStream $SocketStream,$true,$Callback
     # TODO: catch certificate errors here, else lots of errors
     $tlsStream.AuthenticateAsClient("syssspy")
-    $reader = New-Object System.IO.StreamReader($tlsStream)
-    $writer = New-Object System.IO.StreamWriter($tlsStream)
-    $writer.AutoFlush = $true
+    $reader = New-Object System.IO.BinaryReader($tlsStream)
+    $writer = New-Object System.IO.BinaryWriter($tlsStream)
 
     return New-Object -TypeName PSObject -Property @{
        'tlsStream' = $tlsStream
@@ -53,15 +52,14 @@ function Transport-Tls-Close([PSObject] $obj) {
 
 function Transport-Tls-Receive([PSObject] $obj, [Int32] $bytestoread) {
     $numb = 0
-	$buffer = New-Object char[]($bytestoread)
+	$buffer = New-Object byte[]($bytestoread)
 	while ($numb -lt $bytestoread) {
 		$numb += $obj.reader.Read($buffer, $numb, $bytestoread-$numb)
 	}		
-	return [System.Text.Encoding]::UTF8.GetBytes($buffer)
+	return $buffer
 }
 
 function Transport-Tls-Send([PSObject] $obj, [byte[]] $data) {
-    $senddata = [System.Text.Encoding]::UTF8.GetString($data).ToCharArray()
-    $obj.writer.Write($senddata)
+    $obj.writer.Write($data)
 }
 

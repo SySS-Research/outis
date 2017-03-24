@@ -383,7 +383,7 @@ function Transport-Dns-Close([PSObject] $obj) {
 }
 
 
-function Transport-Dns-Receive([PSObject] $obj, [Int32] $bytestoread) {
+function Transport-Dns-Receive([PSObject] $obj, [UInt32] $bytestoread) {
     $bytes = New-Object byte[]($bytestoread);
     $numb = 0
     while ($numb -lt $bytestoread) {

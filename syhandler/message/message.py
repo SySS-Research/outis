@@ -16,6 +16,9 @@ class Message:
     # bytes in the message header
     HEADER_LEN = 7
 
+    # maximal data length for a message
+    MAX_DATA_LEN = 1024 - HEADER_LEN  # TODO: arbitrary value, replace?
+
     # this channel should be used for all commands
     CHANNEL_COMMAND = 0
 
@@ -25,7 +28,7 @@ class Message:
     TYPE_ERRORMESSAGE = 2
     TYPE_DOWNLOADCOMMAND = 10
     TYPE_DATA = 200
-    TYPE_EOC = 400
+    TYPE_EOC = 255
 
     def __init__(self, mtype=None, channelnumber=None, content=None):
         """
@@ -63,6 +66,7 @@ class Message:
             if not morebuf:
                 break
             buf += morebuf
+            print_debug(DEBUG_MODULE + " Parse", "read {} total bytes from transport: {}".format(len(buf), buf))
         if not buf:
             print_error("Invalid empty message")
             return None

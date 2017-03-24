@@ -217,10 +217,20 @@ class TransportDns (Transport, ModuleBase):
 
         # if wrapped by a TLS connection, read from there
         if self.conn:
-            # if there is no data in either queue, block until there is
-            while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
-                pass
-            data = self.conn.read(leng)
+            while True:
+                # if there is no data in either queue, block until there is
+                while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
+                    pass
+                print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
+                            .format(self.conn.pending(), self.recvdataqueue.length()))
+
+                try:
+                    data = self.conn.read(leng)
+                    print_debug(DEBUG_MODULE, "read {} bytes: {}".format(len(data), data))
+                    break
+                except (ssl.SSLWantReadError, ssl.SSLSyscallError):
+                    print_debug(DEBUG_MODULE, "SSL error")
+                    pass
 
         # else, read from the dataqueue normally
         else:
