@@ -217,20 +217,13 @@ class TransportDns (Transport, ModuleBase):
 
         # if wrapped by a TLS connection, read from there
         if self.conn:
-            while True:
-                # if there is no data in either queue, block until there is
-                while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
-                    pass
-                print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
-                            .format(self.conn.pending(), self.recvdataqueue.length()))
+            # if there is no data in either queue, block until there is
+            while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
+                pass
+            print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
+                        .format(self.conn.pending(), self.recvdataqueue.length()))
 
-                try:
-                    data = self.conn.read(leng)
-                    print_debug(DEBUG_MODULE, "read {} bytes: {}".format(len(data), data))
-                    break
-                except (ssl.SSLWantReadError, ssl.SSLSyscallError):
-                    print_debug(DEBUG_MODULE, "SSL error")
-                    pass
+            data = self.conn.read(leng)
 
         # else, read from the dataqueue normally
         else:
@@ -241,6 +234,21 @@ class TransportDns (Transport, ModuleBase):
 
         # finish even if less data than requested, higher level must handle this
         return data
+
+    def has_data(self):
+        """
+        returns True if the connection has data
+        :return: True iff the connection has data that can be read
+        """
+
+        if not self.server:
+            print_error("Connection not open")
+            return
+
+        if self.conn:
+            return self.conn.pending() > 0 or self.recvdataqueue.has_data()
+        else:
+            return self.recvdataqueue.has_data()
 
     def upgradefromstager(self):
         """
