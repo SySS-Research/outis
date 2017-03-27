@@ -49,24 +49,28 @@ class Message:
         self.ready = True
 
     @staticmethod
-    def parseFromTransport(transport):
+    def parseFromTransport(transport, headers=None):
         """
         parse a message object from the agent over the given transport object
         :param transport: the transport to read from
+        :param headers: the headers to use instead of reading them
         :return: message object or None if failed
         """
         
         if not isinstance(transport, Transport):
             print_error(str(transport)+" is not a transport")
             return None
-        
-        buf = b''
-        while len(buf) < Message.HEADER_LEN:
-            morebuf = transport.receive(leng=Message.HEADER_LEN-len(buf))
-            if not morebuf:
-                break
-            buf += morebuf
-            print_debug(DEBUG_MODULE + " Parse", "read {} total bytes from transport: {}".format(len(buf), buf))
+
+        if headers is None:
+            buf = b''
+            while len(buf) < Message.HEADER_LEN:
+                morebuf = transport.receive(leng=Message.HEADER_LEN-len(buf))
+                if not morebuf:
+                    break
+                buf += morebuf
+                print_debug(DEBUG_MODULE + " Parse", "read {} total bytes from transport: {}".format(len(buf), buf))
+        else:
+            buf = headers
         if not buf:
             print_error("Invalid empty message")
             return None

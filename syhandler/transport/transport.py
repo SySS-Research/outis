@@ -24,14 +24,16 @@ class Transport:
     def close(self):
         raise NotImplementedError("Transport.close should have been implemented by transport module")
 
-    def receivemessage(self):
+    def receivemessage(self, headers=None):
         """
         receives a message format message from the agent
         wrapper for Message.parseFromTransport
+        :param headers: if set use these headers first
+        :return: message
         """
 
         from ..message.message import Message
-        message = Message.parseFromTransport(self)
+        message = Message.parseFromTransport(self, headers=headers)
         return message
 
     def sendmessage(self, message):

@@ -11,6 +11,7 @@ class SyThread(threading.Thread):
 
         self.stopevent = threading.Event()
         threading.Thread.__init__(self, target=target)
+        self.result = None
 
     def terminate(self, timeout=None):
         """
@@ -21,3 +22,11 @@ class SyThread(threading.Thread):
 
         self.stopevent.set()
         threading.Thread.join(self, timeout)
+
+    def getResult(self):
+        """
+        Returns the result of the thread if implemented in the run function or None
+        :return: result or None
+        """
+
+        return self.result

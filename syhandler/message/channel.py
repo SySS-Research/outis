@@ -16,6 +16,7 @@ class Channel:
 
         self.state = "RESERVED"
         self.receivequeue = DataQueue()
+        self.sendqueue = DataQueue()
 
     def isReserved(self):
         """
@@ -57,9 +58,22 @@ class Channel:
 
         return self.state == "CLOSED"
 
-    def writeFromSend(self, data):
+    def write(self, data):
         """
         writes data to this channel
+        :param data: data to write to the channel
+        :return: None
+        """
+
+        if not self.isOpen():
+            print_error("cannot write to non-open channel")
+            return
+
+        return self.sendqueue.write(data)
+
+    def writeFromSend(self, data):
+        """
+        writes data to the receivequeue of this channel, to be used from connection only
         :param data: data to write to the channel
         :return: None
         """
@@ -82,6 +96,15 @@ class Channel:
 
         return self.receivequeue.read(leng)
 
+    def readToSend(self, leng=-1):
+        """
+        reads data from the channels sendqueue, to be used for connection only
+        :param leng: length of bytes to read. If not specified or negative, all bytes are returned.
+        :return: data bytes from the sendqueue
+        """
+
+        return self.sendqueue.read(leng)
+
     def has_data(self):
         """
         returns True iff the channel has data to read
@@ -89,3 +112,11 @@ class Channel:
         """
 
         return self.receivequeue.has_data()
+
+    def has_data_to_send(self):
+        """
+        returns True iff the channels sendqueue has data to send
+        :return: True iff the channels sendqueue has data to send
+        """
+
+        return self.sendqueue.has_data()

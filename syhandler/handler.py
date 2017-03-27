@@ -52,6 +52,7 @@ class Handler(ModuleBase):
         self.platform = PlatformPowershell(self)
         self.channels = {}
         self.runningthreads = []
+        self.receiveheadersthread = None
     
     def setoption(self, name, value):
         """
@@ -169,19 +170,44 @@ class Handler(ModuleBase):
                 self.transport.sendmessage(message0)
 
                 # receive a hello request from the agent
-                message1 = self.transport.receivemessage()
-                self.handleMessage(message1)
+                #message1 = self.transport.receivemessage()
+                #self.handleMessage(message1)
 
                 thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
                 #thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
                 self.runningthreads.append(thread)
                 #thread.join()
 
-                while self.channels[Message.CHANNEL_COMMAND].isOpen():
-                    nextmessage = self.transport.receivemessage()
-                    self.handleMessage(nextmessage)
+                self._receiveheader_async_start()
 
-                self.stop()
+                while self.channels[Message.CHANNEL_COMMAND].isOpen():
+
+                    while self._receiveheader_async_isdone():
+                        headers = self._receiveheader_async_getresult()
+                        nextmessage = self.transport.receivemessage(headers=headers)
+                        self.handleMessage(nextmessage)
+                        self._receiveheader_async_start()
+
+                    # collect a list of channels that can be removed
+                    channelstoremove = []
+
+                    # for each channel, send its data to the agent
+                    for channelid in self.channels.keys():
+                        if channelid == Message.CHANNEL_COMMAND:
+                            continue
+                        if self.channels[channelid].has_data_to_send():
+                            data = self.channels[channelid].readToSend(Message.MAX_DATA_LEN)
+                            msg = Message(Message.TYPE_DATA, channelid, data)
+                            self.transport.sendmessage(msg)
+                        elif self.channels[channelid].isClosed():
+                            msg = Message(Message.TYPE_EOC, channelid, b"EOC")
+                            self.transport.sendmessage(msg)
+                            channelstoremove.append(channelid)
+
+                    # remove channels
+                    for channelid in channelstoremove:
+                        del self.channels[channelid]
+
                 exiting = True
 
         except KeyboardInterrupt:
@@ -202,6 +228,38 @@ class Handler(ModuleBase):
             ruby = "/usr/bin/ruby"
             scriptpath = sanatizefilename("$TOOLPATH/thirdpartytools/dnscat2/server/dnscat2.rb")
             os.execv(ruby, [ruby, scriptpath, "--no-cache", "--secret", secret, zone])
+
+    def _receiveheader_async_start(self):
+        """
+        tries to receive the header of a message in the transport channel asyncronly
+        :return: None
+        """
+
+        def receiveheader():
+            pass
+
+        # TODO: implement
+        self.receiveheadersthread = SyThread(target=receiveheader)
+        self.receiveheadersthread.start()
+
+        return None
+
+    def _receiveheader_async_isdone(self):
+        """
+        tests whether the thread finished
+        :return: True if done
+        """
+
+        return not self.receiveheadersthread.is_alive()
+
+    def _receiveheader_async_getresult(self):
+        """
+        returns the result from the thread
+        :return: result header bytes
+        """
+
+        res = self.receiveheadersthread.getResult()
+        return res
 
     def handleMessage(self, message):
         """
@@ -333,6 +391,8 @@ class Handler(ModuleBase):
 
         # stop all threads
         print_debug(DEBUG_MODULE, "Asking threads to finish")
+        if self.receiveheadersthread:
+            self.receiveheadersthread.terminate()
         for t in self.runningthreads:
             t.terminate()
 
