@@ -53,8 +53,21 @@ public class DnsStream : System.IO.Stream {
 
   public override int Read(byte[] buffer, int offset, int count) {
     if (receivequeue.Count == 0) {
-        this.sendqueryfunction.Invoke(this.dnsconnection, null, 0, 0, receivequeue);
+        try {
+            this.sendqueryfunction.Invoke(this.dnsconnection, null, 0, 0, receivequeue);
+        } catch {}
     }
+    if (receivequeue.Count < count) {
+        count = receivequeue.Count;
+    }
+    for (int i=0; i<count; ++i) {
+        buffer[offset+i] = receivequeue.Dequeue();
+    }
+    return count;
+  }
+
+  public int ReadSync(byte[] buffer, int offset, int count) {
+    while (receivequeue.Count == 0);
     if (receivequeue.Count < count) {
         count = receivequeue.Count;
     }

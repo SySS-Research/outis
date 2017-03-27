@@ -60,5 +60,7 @@ def strip_powershell_comments(data):
     strippedCode = "\n".join([line for line in strippedCode.split('\n') if ((line.strip() != '') and
         (not line.strip().startswith("#")) and (not line.strip().lower().startswith("write-verbose ")) and
         (not line.strip().lower().startswith("write-debug ")))])
-    
+
+    # TODO: strip comments at the end of lines
+
     return strippedCode

