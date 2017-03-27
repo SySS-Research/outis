@@ -215,15 +215,22 @@ class TransportDns (Transport, ModuleBase):
             print_error("Connection not open")
             return
 
+        data = None
+
         # if wrapped by a TLS connection, read from there
         if self.conn:
-            # if there is no data in either queue, block until there is
-            while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
-                pass
-            print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
-                        .format(self.conn.pending(), self.recvdataqueue.length()))
+            while data is None:
+                # if there is no data in either queue, block until there is
+                while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
+                    pass
+                print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
+                            .format(self.conn.pending(), self.recvdataqueue.length()))
 
-            data = self.conn.read(leng)
+                try:
+                    data = self.conn.read(leng)
+                    break
+                except ssl.SSLWantReadError:
+                    pass
 
         # else, read from the dataqueue normally
         else:
