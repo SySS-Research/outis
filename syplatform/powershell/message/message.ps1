@@ -67,14 +67,21 @@ function Message-SendToTransport([PSObject] $msg, [PSObject] $transport) {
     Send-ToTransport $transport $data
 }
 
-function Message-ParseFromTransport([PSObject] $transport) {
-    $buf = Receive-FromTransport $transport $MESSAGE_HEADER_LEN
+function Message-ParseFromTransport([Parameter(Mandatory=$true)][PSObject] $transport, [Parameter(Mandatory=$false)][byte[]] $messageheaders=$NULL) {
+    if ($messageheaders -eq $NULL) {
+        $buf = Receive-FromTransport $transport $MESSAGE_HEADER_LEN
+    } else {
+        $buf = $messageheaders
+    }
     
 	$MType = [Byte] $buf[0]
 	$ChannelNumber = [Int16][BitConverter]::ToInt16($buf, 1)
 	$ChannelNumber = [UInt16][System.Net.IPAddress]::NetworkToHostOrder([Int16]$ChannelNumber)
 	$leng = [Int32][BitConverter]::ToInt32($buf, 3)
 	$leng = [System.Net.IPAddress]::NetworkToHostOrder([Int32]$leng)
+	Write-Host "DEBUG: message type = " $MType
+	Write-Host "DEBUG: channel number = " $ChannelNumber
+	Write-Host "DEBUG: length = " $leng
 
     $Content = Receive-FromTransport $transport $leng
     #$Content = [System.Text.Encoding]::UTF8.GetString($Content)

