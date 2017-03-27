@@ -9,7 +9,10 @@ Dependencies for the Handler
  * python-progressbar2
  * python-dnspython
  * python-crypto
- * python-pyopenssl
+ * python-pyopenssl (version 16.1.0 or newer is required, check as follows)
+ ```
+    $ python3 -c 'import OpenSSL; print(OpenSSL.version.__version__)'
+ ```
  * and probably more...
 
 

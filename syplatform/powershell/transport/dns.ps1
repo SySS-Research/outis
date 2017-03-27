@@ -53,9 +53,7 @@ public class DnsStream : System.IO.Stream {
 
   public override int Read(byte[] buffer, int offset, int count) {
     if (receivequeue.Count == 0) {
-        try {
-            this.sendqueryfunction.Invoke(this.dnsconnection, null, 0, 0, receivequeue);
-        } catch {}
+        this.sendqueryfunction.Invoke(this.dnsconnection, null, 0, 0, receivequeue);
     }
     if (receivequeue.Count < count) {
         count = receivequeue.Count;
@@ -64,6 +62,10 @@ public class DnsStream : System.IO.Stream {
         buffer[offset+i] = receivequeue.Dequeue();
     }
     return count;
+  }
+
+  public bool HasData() {
+    return receivequeue.Count > 0;
   }
 
   public int ReadSync(byte[] buffer, int offset, int count) {
@@ -213,6 +215,7 @@ function Transport-Dns-Intern-SendQuery {
     $r=$Connection.requestid++
     $data=Transport-Dns-Intern-ConvertToHostname($data)
     $data="$($data).r$($r).$($Connection.zone)."
+    #Write-Host "DEBUG: request-number =" $r
 
     for ($t=0; $t -le $Connection.retries; $t++) {
         $command="nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)"
@@ -291,7 +294,7 @@ function Transport-Dns-Intern-SendAll {
         $Connection,
 
         [Parameter(Mandatory=$true)]
-        [byte[]]
+        #TODO: [byte[]] but seems to create problems with null reference?
         $Content,
 
         [Parameter(Mandatory=$true)]

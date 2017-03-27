@@ -2,7 +2,7 @@
 AVAILABLE_DEBUG_MODULES = [
     "Message Parse", "Message Create",
     "PlatformPowershell",
-    "Main", "Handler", "Channel"
+    "Main", "Handler", "Channel",
     "TransportReverseTcp", "TransportDns"
 ]
 
