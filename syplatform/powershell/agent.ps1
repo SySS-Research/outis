@@ -89,7 +89,7 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 
     $script = {
         param([string]$filename, [PSObject]$channel)
-        Print-Debug "ASYNC SendFile: filename = $($filename), channel = $($channel)"
+        Print-Debug "[ASYNC SendFile] filename = $($filename), channel = $($channel)"
 
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Open)
 
@@ -105,12 +105,12 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
             for($i=0; $i -lt $br; ++$i) {
                 $channel.sendqueue.Enqueue($buf[$i])
             }
-            Print-Debug "ASYNC SendFile: wrote $($br) bytes"
+            Print-Debug "[ASYNC SendFile] wrote $($br) bytes"
         }
         $reader.Close()
         #Channel-setClosed $channel # cannot call this function from job, hacking it
         $channel.state = "CLOSED"
-        Print-Debug "ASYNC SendFile: done and closed"
+        Print-Debug "[ASYNC SendFile] done and closed"
 
     }
 
@@ -148,26 +148,28 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
     $script = {
         param([string]$filename, [PSObject]$channel)
 
-        Print-Debug "ASYNC ReceiveFile: waiting for channel to open"
+        Print-Debug "[ASYNC ReceiveFile] waiting for channel to open"
         while ($channel.state -eq "RESERVED") {}
-        Print-Debug "ASYNC ReceiveFile: channel opened"
+        Print-Debug "[ASYNC ReceiveFile] channel opened"
 
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Create)
 
         $writer = new-object IO.BinaryWriter($fs)
         while ($true) {
-            Print-Debug "ASYNC ReceiveFile: waiting for data in channel"
+            Print-Debug "[ASYNC ReceiveFile] waiting for data in channel"
             while (($channel.state -eq "OPEN") -and ($channel.receivequeue.Count -eq 0)) {
                 Start-Sleep -Milliseconds 100
             }
             if (($channel.state -eq "CLOSED") -and ($channel.receivequeue.Count -eq 0)) {
-                Print-Debug "ASYNC ReceiveFile: channel closed"
+                Print-Debug "[ASYNC ReceiveFile] channel closed"
                 break
             }
 
+            Print-Debug "[ASYNC ReceiveFile] channel has $($channel.receivequeue.Count) bytes of data"
+
             #Channel-Read $channel 1024 # cannot call this function from job, hacking it
             $readlen = 1024
-            if ($channel.receivequeue.Count -lt $bytestoread) {
+            if ($channel.receivequeue.Count -lt $readlen) {
                 $readlen = $channel.receivequeue.Count;
             }
             $bytes = New-Object byte[]($readlen);
@@ -176,9 +178,9 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
             }
 
             $writer.Write($bytes, 0, $readlen)
-            Print-Debug "ASYNC ReceiveFile: copied $($readlen) bytes from channel"
+            Print-Debug "[ASYNC ReceiveFile] copied $($readlen) bytes from channel"
         }
-        Print-Debug "ASYNC ReceiveFile: done"
+        Print-Debug "[ASYNC ReceiveFile] done"
         $writer.Close()
         $fs.Close()
     }
@@ -217,12 +219,12 @@ function ReceiveHeader-Async-Start([PSObject] $transport) {
 		        } elseif ($channelencryption -eq "TLS") {
 		            $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
 		        } else {
-		            Print-Debug "ASYNC ReceiveHeader: ERROR with invalid channelencryption for DNS"
+		            Print-Debug "[ASYNC ReceiveHeader] invalid channelencryption for DNS"
 		            # TODO: report as error instead
 		            return $NULL
 		        }
 		    } else {
-		        Print-Debug "ASYNC ReceiveHeader: ERROR with invalid connectionmethod"
+		        Print-Debug "[ASYNC ReceiveHeader] invalid connectionmethod"
 		        # TODO: report as error instead
 		        return $NULL
 		    }
@@ -330,7 +332,7 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     while ( ReceiveHeader-Async-IsDone $asyncobj ) {
         # receive result of the async job
         $messageheaders = ReceiveHeader-Async-GetResult $asyncobj
-        Print-Debug "messageheaders =" $messageheaders
+        Print-Debug "messageheaders = $($messageheaders)"
         if ($CONNECTIONMETHOD -eq "DNS") {
             Print-Debug "next request-number =" $initialtransport.requestid
         }

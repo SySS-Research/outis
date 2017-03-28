@@ -176,7 +176,7 @@ class Handler(ModuleBase):
                 #self.handleMessage(message1)
 
                 #thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
-                thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
+                thread = self.upload("/tmp/testfile", "c:\\Users\\fsteglich\\Desktop\\a.txt")
                 self.runningthreads.append(thread)
                 #thread.join()
 

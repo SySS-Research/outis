@@ -1,5 +1,5 @@
 
-$LOGFILE = [System.IO.Path]::GetTempFileName()
+$LOGFILE = "$($env:TEMP)\syssspy.log"
 
 function Print-Debug($text) {
     Add-content $LOGFILE -value "[D] [$(Get-Date)] $($text)"

@@ -19,7 +19,7 @@ activate_debug("Handler")
 handler = Handler()
 
 handler.setoption("PLATFORM", "POWERSHELL")
-#handler.setoption("AGENTDEBUG", "TRUE")
+handler.setoption("AGENTDEBUG", "TRUE")
 
 #handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
