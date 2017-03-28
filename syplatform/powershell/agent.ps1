@@ -38,7 +38,10 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
             return $false
         }
     } else {
-        if (! $Channels.ContainsKey($msg.channelnumber)) {
+        if ((! $Channels.ContainsKey($msg.channelnumber)) -and ($msg.mtype -eq $MESSAGE_TYPE_EOC)) {
+            Print-Debug "received delayed EOC message for unknown channel $($msg.channelnumber), ignoring"
+            return $true
+        } elseif (! $Channels.ContainsKey($msg.channelnumber)) {
             Print-Error "message with unknown channel number ($($msg.channelnumber)) received, droping"
             return $false
         } elseif (Channel-isReserved $Channels[$msg.channelnumber]) {
@@ -53,6 +56,10 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
             Channel-WriteFromSend $Channels[$msg.channelnumber] $msg.content
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_EOC) {
             Channel-setClosed $Channels[$msg.channelnumber]
+        } elseif ($msg.mtype -eq $MESSAGE_TYPE_SIZE) {
+            $size = [System.Text.Encoding]::UTF8.GetString($msg.content)
+            Print-Debug "message size for channel $($msg.channelnumber) received: $($size)"
+            # TODO: store this size somewhere in the channel? use it somehow?
         } else {
             Print-Error "received invalid command for channel $($msg.channelnumber): $($msg.mtype)"
             return $false
@@ -78,8 +85,12 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
     try {
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Open)
         Print-Message "file has $($fs.Length) bytes"
-        # TODO: send file size to handler
+        $size = [System.Text.Encoding]::UTF8.GetBytes("$($fs.Length)")
         $fs.Close()
+
+        # send size to handler
+        $sizemsg = Message-Create -MType $MESSAGE_TYPE_SIZE -ChannelNumber $downloadchannelid -Content $size
+        Message-SendToTransport $sizemsg $transport
     } catch {
         Print-Error "could not open file for reading"
         # TODO: send error to handler!

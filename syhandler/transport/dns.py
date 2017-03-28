@@ -63,13 +63,6 @@ class TransportDns (Transport, ModuleBase):
                 'Required'      :   False,
                 'Value'         :   None
             },
-            'PROGRESSBAR': {
-                'Description'   :   'Display a progressbar for uploading the staged agent? ' +
-                                    '(only if not debugging this module)',
-                'Required'      :   True,
-                'Value'         :   "TRUE",
-                'Options'       :   ("TRUE", "FALSE")
-            }
         }
         self.handler = handler
         self.conn = None
@@ -337,7 +330,7 @@ class TransportDns (Transport, ModuleBase):
             self.maxstagenum = math.ceil(self.senddataqueue.length() / maxresplen) - 1
 
         # create progress bar if selected
-        if self.progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
+        if self.progress is None and self.handler.options['PROGRESSBAR']['Value'] == "TRUE" \
                 and not isactivated(DEBUG_MODULE):
             import progressbar
             self.progress = progressbar.ProgressBar(0, self.maxstagenum)
@@ -349,7 +342,7 @@ class TransportDns (Transport, ModuleBase):
         elif self.progress is not None:
             self.progress.update(self.currentstagenum)
             if self.currentstagenum == self.maxstagenum:
-                print()
+                self.progress.finish()  # flush the line with the progressbar
 
         # return next data segment and increase segment counter
         nextdata = self.senddataqueue.read(maxresplen)

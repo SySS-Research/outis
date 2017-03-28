@@ -47,7 +47,14 @@ class Handler(ModuleBase):
                 'Required'      :   True,
                 'Value'         :   "POWERSHELL",
                 'Options'       :   ("POWERSHELL",)
-            }
+            },
+            'PROGRESSBAR': {
+                'Description'   :   'Display a progressbar for uploading / downloading? ' +
+                                    '(only if not debugging the relevant module)',
+                'Required'      :   True,
+                'Value'         :   "TRUE",
+                'Options'       :   ("TRUE", "FALSE")
+            },
         }
         self.transport = TransportReverseTcp(self)
         #TODO: CHANNELENCRYPTION?
@@ -175,8 +182,8 @@ class Handler(ModuleBase):
                 #message1 = self.transport.receivemessage()
                 #self.handleMessage(message1)
 
-                #thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
-                thread = self.upload("/tmp/testfile", "c:\\Users\\fsteglich\\Desktop\\a.txt")
+                thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
+                #thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
                 self.runningthreads.append(thread)
                 #thread.join()
 
@@ -331,11 +338,16 @@ class Handler(ModuleBase):
                 self.channels[message.channelnumber].writeFromSend(message.content)
             elif message.type == Message.TYPE_EOC:
                 self.channels[message.channelnumber].setClose()
+            elif message.type == Message.TYPE_SIZE:
+                size = int(message.content.decode('utf-8'))
+                print_message("agent reports a size of {} bytes for channel {}".format(size, message.channelnumber))
+                self.channels[message.channelnumber].setSize(size)
             else:
                 print_error("received invalid type for channel: {}".format(message.type))
+                return False
 
             # TODO: implement further channels functions
-            return False
+            return True
 
     def _reservefreechannelid(self):
         """
@@ -373,36 +385,61 @@ class Handler(ModuleBase):
         downloadrequest = MessageDownloadRequest(remotefilename, downloadchannelid=channelid)
         self.transport.sendmessage(downloadrequest)
 
-        def storefile():
+        def storefile(channel):
             """
             stores the data from the channel to the file
+            :param channel: channel from which to read data
             :return: None
             """
 
             storedbytes = 0
             thread = threading.currentThread()
+            progress = None
 
             while not thread.stopevent.isSet():
-                while not self.channels[channelid].has_data() and not self.channels[channelid].isClosed() and \
-                        not thread.stopevent.isSet():
+                while not channel.has_data() and not channel.isClosed() and not thread.stopevent.isSet():
                     time.sleep(0.1)
-                if not self.channels[channelid].has_data() and (self.channels[channelid].isClosed()
-                                                                or thread.stopevent.isSet()):
+                if not channel.has_data() and (channel.isClosed() or thread.stopevent.isSet()):
                     break
                 print_debug(DEBUG_MODULE, "has_data = {}, isClosed = {}, stopevent = {}"
-                            .format(self.channels[channelid].has_data(), self.channels[channelid].isClosed(),
-                                    thread.stopevent.isSet()))
-                data = self.channels[channelid].read(4096)
-                storedbytes += len(data)
-                print_debug(DEBUG_MODULE, "read {} bytes from channel {}".format(len(data), channelid))
+                            .format(channel.has_data(), channel.isClosed(), thread.stopevent.isSet()))
+
+                data = channel.read(4096)
                 file.write(data)
 
+                storedbytes += len(data)
+                maxsize = channel.size or 'unknown'
+
+                # create progress bar if selected
+                if progress is None and self.options['PROGRESSBAR']['Value'] == "TRUE" \
+                        and not isactivated(DEBUG_MODULE):
+                    import progressbar
+                    if channel.size is None:
+                        progress = progressbar.ProgressBar(0, max_value=progressbar.UnknownLength)
+                    else:
+                        progress = progressbar.ProgressBar(0, max_value=maxsize)
+
+                # print progress either in debug line or as progressbar (if selected)
+                if isactivated(DEBUG_MODULE):
+                    print_debug(DEBUG_MODULE, "read {} bytes from channel {}".format(len(data), channelid))
+                    print_debug(DEBUG_MODULE, "wrote {} / {} total bytes to file".format(storedbytes, maxsize))
+                elif progress is not None:
+                    progress.update(storedbytes)
+
             file.close()
+
+            if progress and channel.size == storedbytes:
+                progress.finish()  # flush the line with the progressbar
+            elif progress:
+                print()  # flush the line with the progressbar without setting it to finished state
+
             print_message("wrote {} bytes to file {}".format(storedbytes, localfilename))
             if thread.stopevent.isSet():
                 print_error("download stoped, file content may be incomplete")
+            elif channel.size is not None and channel.size != storedbytes:
+                print_error("stored more or less content than expected size, download may be incomplete")
 
-        downloadthread = SyThread(target=storefile)
+        downloadthread = SyThread(target=storefile, args=(self.channels[channelid],))
         downloadthread.start()
 
         return downloadthread
@@ -430,32 +467,69 @@ class Handler(ModuleBase):
         uploadrequest = MessageUploadRequest(remotefilename, uploadchannelid=channelid)
         self.transport.sendmessage(uploadrequest)
 
-        def upfile():
+        # send file size to agent (in case it may use it)
+        size = os.fstat(file.fileno()).st_size
+        self.channels[channelid].setSize(size)
+        filesizemsg = Message(mtype=Message.TYPE_SIZE, channelnumber=channelid, content=str(size).encode('utf-8'))
+        self.transport.sendmessage(filesizemsg)
+
+        def upfile(channel):
             """
             pushes the data of the local file to the channel
+            :param channel: channet to which to write the data
             :return: None
             """
 
             storedbytes = 0
             thread = threading.currentThread()
-            self.channels[channelid].setOpen()
+            progress = None
+
+            # create progress bar if selected
+            if self.options['PROGRESSBAR']['Value'] == "TRUE" and not isactivated(DEBUG_MODULE):
+                import progressbar
+                if channel.size is None:
+                    progress = progressbar.ProgressBar(0, max_value=progressbar.UnknownLength)
+                else:
+                    progress = progressbar.ProgressBar(0, max_value=channel.size)
+
+            channel.setOpen()
 
             while not thread.stopevent.isSet():
                 data = file.read(4096)
                 if data == b'':
                     break  # End of file
-                self.channels[channelid].write(data)
+                channel.write(data)
                 storedbytes += len(data)
-                print_debug(DEBUG_MODULE, "wrote {} bytes to channel {}".format(len(data), channelid))
+                if isactivated(DEBUG_MODULE):
+                    print_debug(DEBUG_MODULE, "wrote {} bytes to channel {}".format(len(data), channelid))
+                elif progress is not None:
+                    progress.update(storedbytes - channel.sendqueue.length())
 
-            self.channels[channelid].setClose()
-
+            channel.setClose()
             file.close()
-            print_message("wrote {} bytes from file {} channel {}".format(storedbytes, localfilename, channelid))
+            print_debug(DEBUG_MODULE, "wrote {} bytes from file {} to channel {}"
+                        .format(storedbytes, localfilename, channelid))
+
+            while not thread.stopevent.isSet():
+                leftbytes = channel.sendqueue.length()
+                if isactivated(DEBUG_MODULE):
+                    print_debug(DEBUG_MODULE, "{} / {} bytes left the channel"
+                                .format(leftbytes, channel.size))
+                elif progress is not None:
+                    progress.update(channel.size - leftbytes)
+                if leftbytes == 0:
+                    break
+                time.sleep(0.1)
+
+            #if progress and not channel.has_data_to_send():
+            #    progress.finish()  # flush the line with the progressbar
+            if progress:
+                print()  # flush the line with the progressbar without setting it to finished state
+
             if thread.stopevent.isSet():
                 print_error("upload stoped, file content may be incomplete")
 
-        uploadthread = SyThread(target=upfile)
+        uploadthread = SyThread(target=upfile, args=(self.channels[channelid],))
         uploadthread.start()
 
         return uploadthread

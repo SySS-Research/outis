@@ -17,6 +17,7 @@ class Channel:
         self.state = "RESERVED"
         self.receivequeue = DataQueue()
         self.sendqueue = DataQueue()
+        self.size = None
 
     def isReserved(self):
         """
@@ -120,3 +121,12 @@ class Channel:
         """
 
         return self.sendqueue.has_data()
+
+    def setSize(self, size):
+        """
+        sets the size value for the expected data of this channel
+        :param size: size in bytes
+        :return: None
+        """
+
+        self.size = size

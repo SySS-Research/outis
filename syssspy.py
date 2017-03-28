@@ -8,7 +8,7 @@ from syhelpers.log import activate_debug
 #print_debug("Main", "installPath = {}".format(installPath))
 
 #activate_debug("Main")
-activate_debug("Handler")
+#activate_debug("Handler")
 #activate_debug("Channel")
 #activate_debug("PlatformPowershell")
 #activate_debug("TransportDns")
@@ -19,7 +19,7 @@ activate_debug("Handler")
 handler = Handler()
 
 handler.setoption("PLATFORM", "POWERSHELL")
-handler.setoption("AGENTDEBUG", "TRUE")
+#handler.setoption("AGENTDEBUG", "TRUE")
 
 #handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")

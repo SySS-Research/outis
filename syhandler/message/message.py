@@ -29,6 +29,7 @@ class Message:
     TYPE_DOWNLOADCOMMAND = 10
     TYPE_UPLOADCOMMAND = 11
     TYPE_DATA = 200
+    TYPE_SIZE = 210
     TYPE_EOC = 255
 
     def __init__(self, mtype=None, channelnumber=None, content=None):
