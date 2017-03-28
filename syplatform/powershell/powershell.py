@@ -12,7 +12,7 @@ import base64
 
 DEBUG_MODULE = "PlatformPowershell"
 MIN_AGENT_LEN = 4000  # TODO: choose a value close to the real agent length
-MAX_AGENT_LEN = 10240  # TODO: choose shorter value, when done writing agent => faster staging
+MAX_AGENT_LEN = 30 * 1024  # TODO: choose shorter value, when done writing agent => faster staging
 SIGNATURE_ALGO = "SHA512"
 SIGNATURE_LEN = 512
 SIGNATURE_LEN_B64 = encryption.lenofb64coding(SIGNATURE_LEN)
