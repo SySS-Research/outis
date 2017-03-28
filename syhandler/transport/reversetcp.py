@@ -150,6 +150,8 @@ class TransportReverseTcp (Transport, ModuleBase):
         except ConnectionResetError:
             data = None
 
+        print_debug(DEBUG_MODULE, "received data: {}".format(data))
+
         if not data:
             print_error("Connection closed by peer")
             self.close()

@@ -182,8 +182,8 @@ class Handler(ModuleBase):
                 #message1 = self.transport.receivemessage()
                 #self.handleMessage(message1)
 
-                thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
-                #thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
+                thread = self.download("c:\\Users\\fsteglich\\Desktop\\a.txt", "/tmp/a")
+                #thread = self.upload("/tmp/testfile", "c:\\Users\\fsteglich\\Desktop\\a.txt")
                 self.runningthreads.append(thread)
                 #thread.join()
 
@@ -424,6 +424,8 @@ class Handler(ModuleBase):
                     print_debug(DEBUG_MODULE, "read {} bytes from channel {}".format(len(data), channelid))
                     print_debug(DEBUG_MODULE, "wrote {} / {} total bytes to file".format(storedbytes, maxsize))
                 elif progress is not None:
+                    if isinstance(progress.max_value, int) and storedbytes > progress.max_value:
+                        progress.max_value = storedbytes
                     progress.update(storedbytes)
 
             file.close()

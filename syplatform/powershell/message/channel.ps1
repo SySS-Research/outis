@@ -43,8 +43,11 @@ function Channel-Write([PSObject] $channel, [byte[]] $data, [Int32] $length = -1
         $copylen = $data.Length
     }
 
+    Print-Debug "writing $($copylen) bytes to channel"
+
     for($i=0; $i -lt $copylen; ++$i) {
         $channel.sendqueue.Enqueue($data[$i])
+        # TODO: !!! maybe count increases before adding ???
     }
 }
 
@@ -70,6 +73,8 @@ function Channel-ReadToSend([PSObject] $channel, [UInt32] $bytestoread) {
     if ($channel.sendqueue.Count -lt $bytestoread) {
         $readlen = $channel.sendqueue.Count;
     }
+
+    Print-Debug "reading $($readlen) bytes from channel to send"
 
     $bytes = New-Object byte[]($readlen);
     for ($i=0; $i -lt $readlen; ++$i) {

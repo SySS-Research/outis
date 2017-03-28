@@ -372,6 +372,7 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
         if (Channel-HasDataToSend($Channels[$chanid])) {
             Print-Debug "sending data"
             $data = Channel-ReadToSend $Channels[$chanid] $MESSAGE_MAX_DATA_LEN
+            #Print-Debug "sending data: $($data)"
             $msg = Message-Create -MType $MESSAGE_TYPE_DATA -ChannelNumber $chanid -Content $data
             Message-SendToTransport $msg $transport
             $hassended = $true
