@@ -146,19 +146,19 @@ function Transport-Dns-Open {
 
         $leng = $res.Length - 1
         $res = New-Object String($res,1,$leng)
-        #Write-Host $res
+        #Print-Debug "[DNS] testresponse = $($res)"
         if ($res.StartsWith("PON")) { # TODO: replace with $COMMAND_PONG somehow
             $dnstypefound=$true
-            #Write-Host "Connection with DNS type $($connection.dnstype) possible"
+            #Print-Message "[DNS] Connection with DNS type $($connection.dnstype) possible"
             break
         }
     }
 
     if(!$dnstypefound) {
-        Write-Host 'Error: failed to find dnstype for connection'
+        Print-Error "[DNS] failed to find dnstype for connection"
         exit(1)
     } else {
-        Write-Host "Connection with DNS type $($connection.dnstype) possible"
+        Print-Message "[DNS] Connection with DNS type $($connection.dnstype) possible"
     }
 
     $sendqueryfunction = get-content Function:\Transport-Dns-Intern-SendAll
@@ -215,13 +215,13 @@ function Transport-Dns-Intern-SendQuery {
     $r=$Connection.requestid++
     $data=Transport-Dns-Intern-ConvertToHostname($data)
     $data="$($data).r$($r).$($Connection.zone)."
-    #Write-Host "DEBUG: request-number =" $r
+    #Print-Debug "[DNS] request-number =" $r
 
     for ($t=0; $t -le $Connection.retries; $t++) {
         $command="nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)"
-        #Write-Host $command
+        #Print-Debug "running command: $($command)"
         $c=[string](IEX $command 2>&1)
-        #Write-Host ">>>>" $c "<<<<"
+        #Print-Debug "result: >>>> $($c) <<<<"
 
         if ($Connection.dnstype -eq 'TXT') {
             if ($c.Contains('"')) {
@@ -259,19 +259,19 @@ function Transport-Dns-Intern-SendQuery {
 
     # no success, print error message
     if (!$res) {
-        Write-Host "ERROR: no answer received"
+        Print-Error "[DNS] no answer received"
         return $NULL
     }
 
     # command sequence
     if ($res[0] -eq [byte] 0x43) {
         # TODO: command parsing
-        #Write-Host "command received"
+        #Print-Debug "command received"
         return $res
     } elseif (($res[0] -ge [byte] 0x44) -and ($res[0] -le [byte] 0x44 + 15)) {
         return $res
     } else {
-        Write-Host "invalid DNS command byte received"
+        Print-Error "[DNS] invalid DNS command byte received"
         return $NULL
     }
 
@@ -319,7 +319,7 @@ function Transport-Dns-Intern-SendAll {
     }
 
     if ($Offset + $Count -gt $Content.Length) {
-        Write-Host "ERROR in Transport-Dns-Intern-SendAll: wrongly addressed send array"
+        Print-Error "[DNS] Transport-Dns-Intern-SendAll: wrongly addressed send array"
     }
 
     $blocksize = 100
@@ -362,7 +362,7 @@ function Transport-Dns-Intern-ConvertFromHostname([string]$hostname, [string]$zo
     $lidx = $hostname.LastIndexOf($zone)
     $x = $hostname.Substring(0,$lidx)
     if (($x + $zone) -ne $hostname) {
-        Write-Host "ERROR: hostname does not end with zone"
+        Print-Error "[DNS] hostname does not end with zone"
         return $NULL
     }
 

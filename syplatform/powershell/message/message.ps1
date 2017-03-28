@@ -80,9 +80,9 @@ function Message-ParseFromTransport([Parameter(Mandatory=$true)][PSObject] $tran
 	$ChannelNumber = [UInt16][System.Net.IPAddress]::NetworkToHostOrder([Int16]$ChannelNumber)
 	$leng = [Int32][BitConverter]::ToInt32($buf, 3)
 	$leng = [System.Net.IPAddress]::NetworkToHostOrder([Int32]$leng)
-	Write-Host "DEBUG: message type = " $MType
-	Write-Host "DEBUG: channel number = " $ChannelNumber
-	Write-Host "DEBUG: length = " $leng
+	Print-Debug "[Message] message type = $($MType)"
+	Print-Debug "[Message] channel number = $($ChannelNumber)"
+	Print-Debug "[Message] length = $($leng)"
 
     $Content = Receive-FromTransport $transport $leng
     #$Content = [System.Text.Encoding]::UTF8.GetString($Content)

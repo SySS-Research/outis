@@ -75,6 +75,12 @@ class PlatformPowershell(Platform, ModuleBase):
                 'Required'      :   True,
                 'Value'         :   2
             },
+            'AGENTDEBUG': {
+                'Description'   :   'Should the agent print and log debug messages',
+                'Required'      :   True,
+                'Value'         :   "FALSE",
+                'Options'       :   ("TRUE", "FALSE")
+            },
         }
         self.handler = handler
         self.platformpath = os.path.abspath(os.path.dirname(__file__))
@@ -383,6 +389,9 @@ class PlatformPowershell(Platform, ModuleBase):
         # strip comments and empty lines
         agent = helps.strip_powershell_comments(agent)
 
+        if self.options['AGENTDEBUG']['Value'] == "FALSE":
+            agent = helps.strip_debug_commands(agent)
+
         # ok, lets encode the agent
         agent = agent.encode('utf-8')
         print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
@@ -501,7 +510,7 @@ class PlatformPowershell(Platform, ModuleBase):
             # noinspection PyUnusedLocal
             staged = self.isstaged()
 
-        agent = ""
+        agent = "$ADDTOSCRIPTS = \"\"\n$LOGFILE = $NULL\n"
 
         # add selected transport implementation
         if self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
@@ -540,6 +549,17 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # add channel basics
         f = open(self.platformpath + "/message/channel.ps1", 'r')
+        agent += f.read()
+        f.close()
+
+        # add debug log module
+        if self.options['AGENTDEBUG']['Value'] == "TRUE":
+            f = open(self.platformpath + "/helpers/logdebug.ps1", 'r')
+            agent += f.read()
+            f.close()
+
+        # add message / error log
+        f = open(self.platformpath + "/helpers/log.ps1", 'r')
         agent += f.read()
         f.close()
 

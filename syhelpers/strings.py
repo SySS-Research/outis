@@ -48,19 +48,33 @@ def powershell_launcher(raw, baseCmd="powershell.exe -NoP -sta -NonI -W Hidden -
 # noinspection PyTypeChecker
 def strip_powershell_comments(data):
     """
-    Strip block comments, line comments, empty lines, verbose statements,
-    and debug statements from a PowerShell source file.
+    Strip block comments, line comments and empty lines from a PowerShell source file.
     """
     
     # strip block comments
     strippedCode = re.sub(re.compile('<#.*?#>', re.DOTALL), '', data)
 
-    # strip blank lines, lines starting with #, and verbose/debug statements
+    # strip blank lines and lines starting with #
     # noinspection PyPep8
     strippedCode = "\n".join([line for line in strippedCode.split('\n') if ((line.strip() != '') and
-        (not line.strip().startswith("#")) and (not line.strip().lower().startswith("write-verbose ")) and
-        (not line.strip().lower().startswith("write-debug ")))])
+        (not line.strip().startswith("#")))])
 
     # TODO: strip comments at the end of lines
+
+    return strippedCode
+
+
+def strip_debug_commands(data):
+    """
+    Strip debug statements from a PowerShell source file.
+    """
+
+    # strip block comments
+    strippedCode = re.sub(re.compile('<#.*?#>', re.DOTALL), '', data)
+
+    # strip debug statements
+    # noinspection PyPep8
+    strippedCode = "\n".join([line for line in strippedCode.split('\n')
+                              if not line.strip().lower().startswith("print-debug ")])
 
     return strippedCode

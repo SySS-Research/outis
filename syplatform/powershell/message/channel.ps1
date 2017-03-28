@@ -34,7 +34,7 @@ function Channel-isClosed([PSObject] $channel) {
 
 function Channel-Write([PSObject] $channel, [byte[]] $data, [Int32] $length = -1) {
     if (!(Channel-isOpen $channel)) {
-        Write-Host "ERROR: cannot write to not open channel"
+        Print-Error "cannot write to not open channel"
         return
     }
 
@@ -50,19 +50,15 @@ function Channel-Write([PSObject] $channel, [byte[]] $data, [Int32] $length = -1
 
 function Channel-WriteFromSend([PSObject] $channel, [byte[]] $data, [Int32] $length = -1) {
     if (!(Channel-isOpen $channel)) {
-        Write-Host "ERROR: cannot write to not open channel"
+        Print-Error "cannot write to not open channel"
         return
     }
-
-    Write-Host "DEBUG: length = $($length)"
-    Write-Host "DEBUG: data.Length = $($data.Length)"
 
     $copylen = $length
     if ($length -eq -1) {
         $copylen = $data.Length
     }
 
-    Write-Host "DEBUG: writing $($copylen) bytes to channel"
     for($i=0; $i -lt $copylen; ++$i) {
         $channel.receivequeue.Enqueue($data[$i])
     }
