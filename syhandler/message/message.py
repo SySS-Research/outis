@@ -27,6 +27,7 @@ class Message:
     TYPE_MESSAGE = 1
     TYPE_ERRORMESSAGE = 2
     TYPE_DOWNLOADCOMMAND = 10
+    TYPE_UPLOADCOMMAND = 11
     TYPE_DATA = 200
     TYPE_EOC = 255
 
@@ -128,4 +129,21 @@ class MessageDownloadRequest (Message):
 
         content = struct.pack("!H", downloadchannelid) + filetodownload.encode('utf-8')
         Message.__init__(self, mtype=Message.TYPE_DOWNLOADCOMMAND, channelnumber=Message.CHANNEL_COMMAND,
+                         content=content)
+
+
+class MessageUploadRequest (Message):
+    """
+    An upload request message. Send this to the agent if you like to upload a file.
+    """
+
+    def __init__(self, filetoupload, uploadchannelid):
+        """
+        create a new message with a upload request
+        :param filetoupload: string name of the remote file to write
+        :param uploadchannelid: channel number for the upload stream to open
+        """
+
+        content = struct.pack("!H", uploadchannelid) + filetoupload.encode('utf-8')
+        Message.__init__(self, mtype=Message.TYPE_UPLOADCOMMAND, channelnumber=Message.CHANNEL_COMMAND,
                          content=content)

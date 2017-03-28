@@ -138,14 +138,18 @@ class TransportReverseTcp (Transport, ModuleBase):
         """
         receive data from connected host
         :param leng: length of data to collect
-        :return: data
+        :return: data (or None if connection closed)
         """
 
         if not self.conn:
             print_error("Connection not open")
-            return
+            return None
 
-        data = self.conn.recv(leng)
+        try:
+            data = self.conn.recv(leng)
+        except ConnectionResetError:
+            data = None
+
         if not data:
             print_error("Connection closed by peer")
             self.close()
@@ -185,9 +189,10 @@ class TransportReverseTcp (Transport, ModuleBase):
         :return: None
         """
 
-        if not self.conn:
-            print_error("Connection not open")
+        if self.conn is None:
+            print_debug(DEBUG_MODULE, "Connection not open")
             return
+
         self.conn.close()
         self.conn = None
 

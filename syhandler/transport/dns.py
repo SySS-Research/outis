@@ -6,6 +6,8 @@ import threading
 
 import math
 
+import time
+
 from syhelpers.dataqueue import DataQueue
 from syhelpers.encoding import dnshostdecode, dnstxtencode, lenofb64decoded, dnsip4encode, dnshostencode, dnsip6encode
 from syhelpers.types import isportnumber, isint
@@ -222,14 +224,14 @@ class TransportDns (Transport, ModuleBase):
             while data is None:
                 # if there is no data in either queue, block until there is
                 while self.conn.pending() <= 0 and not self.recvdataqueue.has_data():
-                    pass
+                    time.sleep(0.1)
                 print_debug(DEBUG_MODULE, "conn.pending = {}, recvdataqueue = {}"
                             .format(self.conn.pending(), self.recvdataqueue.length()))
 
                 try:
                     data = self.conn.read(leng)
                     break
-                except ssl.SSLWantReadError:
+                except (ssl.SSLWantReadError, ssl.SSLSyscallError):
                     pass
 
         # else, read from the dataqueue normally
@@ -295,8 +297,8 @@ class TransportDns (Transport, ModuleBase):
         :return: None
         """
 
-        if not self.server:
-            print_error("Connection not open")
+        if self.server is None:
+            print_debug(DEBUG_MODULE, "Connection not open")
             return
 
         self.server.shutdown()

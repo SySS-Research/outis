@@ -1,19 +1,23 @@
+import ctypes
+import inspect
 import threading
 
 
 class SyThread(threading.Thread):
 
-    def __init__(self, target):
+    def __init__(self, target, args=()):
         """
         constructor of our thread
-        :param: target method to call in the tread
+        :param target method to call in the tread
+        :param args: arguments to present to target function
         """
 
         self.stopevent = threading.Event()
-        threading.Thread.__init__(self, target=target)
+        threading.Thread.__init__(self, target=target, args=args)
         self.result = None
+        self.daemon = True
 
-    def terminate(self, timeout=None):
+    def terminate(self, timeout):
         """
         Stop the thread and wait for it to end.
         :param timeout: timeout for the join operation

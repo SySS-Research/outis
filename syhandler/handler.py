@@ -2,12 +2,14 @@
 import os
 import threading
 
+import time
+
 from syhandler.message.channel import Channel
 from syhelpers.files import sanatizefilename
 from syhelpers.sythread import SyThread
 from .transport.dns import TransportDns
 from .transport.reversetcp import TransportReverseTcp
-from .message.message import Message, MessageDownloadRequest
+from .message.message import Message, MessageDownloadRequest, MessageUploadRequest
 from syplatform.powershell.powershell import PlatformPowershell
 from syhelpers.log import *
 from syhelpers.modulebase import ModuleBase
@@ -173,8 +175,8 @@ class Handler(ModuleBase):
                 #message1 = self.transport.receivemessage()
                 #self.handleMessage(message1)
 
-                thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
-                #thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
+                #thread = self.download("c:\\Users\\fsteglich\\Desktop\\test2.ps1", "/tmp/a")
+                thread = self.upload("/tmp/a", "c:\\Users\\fsteglich\\Desktop\\a.txt")
                 self.runningthreads.append(thread)
                 #thread.join()
 
@@ -184,9 +186,15 @@ class Handler(ModuleBase):
 
                     while self._receiveheader_async_isdone():
                         headers = self._receiveheader_async_getresult()
+                        if headers is None:
+                            self.channels[Message.CHANNEL_COMMAND].setClose()
+                            break
                         nextmessage = self.transport.receivemessage(headers=headers)
                         self.handleMessage(nextmessage)
                         self._receiveheader_async_start()
+
+                    if not self.channels[Message.CHANNEL_COMMAND].isOpen():
+                        break
 
                     # collect a list of channels that can be removed
                     channelstoremove = []
@@ -235,11 +243,23 @@ class Handler(ModuleBase):
         :return: None
         """
 
-        def receiveheader():
-            pass
+        def receiveheader(transport):
+            #print_debug(DEBUG_MODULE, "started async receive of message header")
+            buf = b''
+            thread = threading.currentThread()
+            while len(buf) < Message.HEADER_LEN and not thread.stopevent.isSet():
+                morebuf = transport.receive(leng=Message.HEADER_LEN-len(buf))
+                #print_debug(DEBUG_MODULE, "async receive of message header read {} bytes".format(len(morebuf)))
+                if not morebuf:
+                    break
+                buf += morebuf
+            if thread.stopevent.isSet() or len(buf) < Message.HEADER_LEN:
+                print_error("receiving message header stoped or failed")
+                buf = None
+            thread.result = buf
+            #print_debug(DEBUG_MODULE, "async receive of message header done")
 
-        # TODO: implement
-        self.receiveheadersthread = SyThread(target=receiveheader)
+        self.receiveheadersthread = SyThread(target=receiveheader, args=(self.transport,))
         self.receiveheadersthread.start()
 
         return None
@@ -250,6 +270,8 @@ class Handler(ModuleBase):
         :return: True if done
         """
 
+        #print_debug(DEBUG_MODULE, "async receive of message header is_alive: {}"
+        #            .format(self.receiveheadersthread.is_alive()))
         return not self.receiveheadersthread.is_alive()
 
     def _receiveheader_async_getresult(self):
@@ -267,6 +289,10 @@ class Handler(ModuleBase):
         :param message: message to handle
         :return: True iff handled successfully
         """
+
+        if message is None:
+            print_error("Invalid empty message")
+            return False
 
         if message.channelnumber == Message.CHANNEL_COMMAND:
             if message.type == Message.TYPE_COMMAND:
@@ -287,7 +313,11 @@ class Handler(ModuleBase):
                 print_error("message with invalid type received: {}".format(message.type))
                 return False
         else:
-            if message.channelnumber not in self.channels:
+            if message.channelnumber not in self.channels and message.type == Message.TYPE_EOC:
+                print_debug(DEBUG_MODULE, "received delayed EOC message for unknown channel {}, ignoring"
+                            .format(message.channelnumber))
+                return True
+            elif message.channelnumber not in self.channels:
                 print_error("message with channel number {} received, but channel is unknown, dropping"
                             .format(message.channelnumber))
                 return False
@@ -355,7 +385,7 @@ class Handler(ModuleBase):
             while not thread.stopevent.isSet():
                 while not self.channels[channelid].has_data() and not self.channels[channelid].isClosed() and \
                         not thread.stopevent.isSet():
-                    pass
+                    time.sleep(0.1)
                 if not self.channels[channelid].has_data() and (self.channels[channelid].isClosed()
                                                                 or thread.stopevent.isSet()):
                     break
@@ -377,6 +407,59 @@ class Handler(ModuleBase):
 
         return downloadthread
 
+    def upload(self, localfilename, remotefilename):
+        """
+        should upload the local fiele to the agent
+        :param localfilename: string of the local file to read
+        :param remotefilename: string of the remote file to upload to
+        :return: thread for the upload writing storing
+        """
+
+        channelid = self._reservefreechannelid()
+        if not channelid:
+            print_error("could not reserve a channel id for the upload")
+            return None
+
+        file = open(localfilename, 'rb')
+        if not file:
+            print_error("could not open local file {} for reading".format(localfilename))
+            return
+
+        # send file upload request to agent
+        print_message("initiating upload for local file {} to remote file {}".format(localfilename, remotefilename))
+        uploadrequest = MessageUploadRequest(remotefilename, uploadchannelid=channelid)
+        self.transport.sendmessage(uploadrequest)
+
+        def upfile():
+            """
+            pushes the data of the local file to the channel
+            :return: None
+            """
+
+            storedbytes = 0
+            thread = threading.currentThread()
+            self.channels[channelid].setOpen()
+
+            while not thread.stopevent.isSet():
+                data = file.read(4096)
+                if data == b'':
+                    break  # End of file
+                self.channels[channelid].write(data)
+                storedbytes += len(data)
+                print_debug(DEBUG_MODULE, "wrote {} bytes to channel {}".format(len(data), channelid))
+
+            self.channels[channelid].setClose()
+
+            file.close()
+            print_message("wrote {} bytes from file {} channel {}".format(storedbytes, localfilename, channelid))
+            if thread.stopevent.isSet():
+                print_error("upload stoped, file content may be incomplete")
+
+        uploadthread = SyThread(target=upfile)
+        uploadthread.start()
+
+        return uploadthread
+
     def stop(self):
         """
         tries to cleanup the handler
@@ -392,9 +475,9 @@ class Handler(ModuleBase):
         # stop all threads
         print_debug(DEBUG_MODULE, "Asking threads to finish")
         if self.receiveheadersthread:
-            self.receiveheadersthread.terminate()
+            self.receiveheadersthread.terminate(timeout=1.0)
         for t in self.runningthreads:
-            t.terminate()
+            t.terminate(timeout=1.0)
 
         print_debug(DEBUG_MODULE, "Closing transport module")
         self.transport.close()
