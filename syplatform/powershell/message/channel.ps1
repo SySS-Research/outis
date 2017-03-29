@@ -1,8 +1,11 @@
 
 
 function Channel-Open() {
+    # TODO: !!! Queue is not threadsafe !!!, try using its SyncRoot or a Wrapper?
     $sendqueue = New-Object System.Collections.Generic.Queue[byte]
+    $sendqueue = [System.Collections.Queue]::Synchronized($sendqueue)
     $receivequeue = New-Object System.Collections.Generic.Queue[byte]
+    $receivequeue = [System.Collections.Queue]::Synchronized($receivequeue)
     $state = "RESERVED"
 
     return New-Object -TypeName PSObject -Property @{

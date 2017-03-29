@@ -1,8 +1,7 @@
 $Source = @"
 public class DnsStream : System.IO.Stream {
 
-  private System.Collections.Generic.Queue<byte> sendqueue = new System.Collections.Generic.Queue<byte>(); // TODO: remove?
-  private System.Collections.Generic.Queue<byte> receivequeue = new System.Collections.Generic.Queue<byte>();
+  private System.Collections.Queue receivequeue = null;
 
   private System.Management.Automation.PSObject dnsconnection;
   private System.Management.Automation.ScriptBlock sendqueryfunction;
@@ -11,6 +10,7 @@ public class DnsStream : System.IO.Stream {
       System.Management.Automation.ScriptBlock sendqueryfunction) : base() {
     this.dnsconnection = dnsconnection;
     this.sendqueryfunction = sendqueryfunction;
+    this.receivequeue = System.Collections.Queue.Synchronized( new System.Collections.Queue() );
   }
 
   public override bool CanRead {
@@ -59,7 +59,7 @@ public class DnsStream : System.IO.Stream {
         count = receivequeue.Count;
     }
     for (int i=0; i<count; ++i) {
-        buffer[offset+i] = receivequeue.Dequeue();
+        buffer[offset+i] = (byte) receivequeue.Dequeue();
     }
     return count;
   }
@@ -74,7 +74,7 @@ public class DnsStream : System.IO.Stream {
         count = receivequeue.Count;
     }
     for (int i=0; i<count; ++i) {
-        buffer[offset+i] = receivequeue.Dequeue();
+        buffer[offset+i] = (byte) receivequeue.Dequeue();
     }
     return count;
   }
@@ -340,7 +340,7 @@ function Transport-Dns-Intern-SendAll {
             $paddingbytes = $res[0] - [byte] 0x44
             $reslen = ($res.Length) - $paddingbytes
             for($j=1; $j -lt $reslen; ++$j) {
-                $Resultqueue.Enqueue($res[$j])
+                $Resultqueue.Enqueue([byte]$res[$j])
             }
         }
     }
