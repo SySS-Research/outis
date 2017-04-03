@@ -5,15 +5,48 @@ syssspy is a custom Remote Administration Tool (RAT) or something like than. Thi
 Dependencies for the Handler
 ============================
 
+Archlinux users can install the following packages:
+
  * python3
  * python-progressbar2
  * python-dnspython
  * python-crypto
- * python-pyopenssl (version 16.1.0 or newer is required, check as follows)
+ * python-pyopenssl
+ * and maybe more...
+
+In other distributions the names may differ, for instance, there is a module named crypto and a module named pycrypto. We need the latter.
+
+Also, older versions might cause problems:
+
+ * pyopenssl needs to be version 16.1.0 or newer, check as follows:
  ```
     $ python3 -c 'import OpenSSL; print(OpenSSL.version.__version__)'
  ```
- * and probably more...
+
+Marcel succeded with python virtual environments and the following pip packages:
+
+```
+$ pip freeze
+appdirs==1.4.3
+asn1crypto==0.22.0
+cffi==1.10.0
+crypto==1.4.1
+cryptography==1.8.1
+dnspython==1.15.0
+idna==2.5
+Naked==0.1.31
+packaging==16.8
+progressbar2==3.16.0
+pycparser==2.17
+pycrypto==2.6.1
+pyOpenSSL==16.2.0
+pyparsing==2.2.0
+python-utils==2.0.1
+PyYAML==3.12
+requests==2.13.0
+shellescape==3.4.1
+six==1.10.0
+```
 
 
 Installation
@@ -73,6 +106,7 @@ Currently Supported Commands and Controls
 
  * ping requests to test the connection (partial)
  * text message format (partial)
+ * upload and download of files
 
 
 Currently Supported Extras
