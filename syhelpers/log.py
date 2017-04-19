@@ -1,3 +1,7 @@
+import os
+import tempfile
+import datetime
+
 AVAILABLE_DEBUG_MODULES = [
     "Message Parse", "Message Create",
     "PlatformPowershell",
@@ -7,6 +11,8 @@ AVAILABLE_DEBUG_MODULES = [
 ]
 
 ACTIVATED_DEBUG_MODULES = []
+
+LOGFILE = None
 
 
 # noinspection PyShadowingBuiltins
@@ -24,6 +30,14 @@ def activate_debug(module):
     if module in ACTIVATED_DEBUG_MODULES:
         print_error("debug module '{}' is already active".format(module))
         return
+
+    # if this is the first activation set LOGFILE and print it
+    if not ACTIVATED_DEBUG_MODULES:
+        global LOGFILE
+        LOGFILE = os.path.join(tempfile.gettempdir(), "syssspy.log")
+        print_message("DEBUGGING is active, writing to debug file " + str(LOGFILE))
+
+    # add module to ACTIVATED_DEBUG_MODULES
     ACTIVATED_DEBUG_MODULES.append(module)
 
 
@@ -45,23 +59,39 @@ def isactivated(module):
 
 def print_error(text):
     """ for error messages """
+
+    if LOGFILE:
+        with open(LOGFILE, "a") as logfile:
+            logfile.write("[-] ["+str(datetime.datetime.now())+"] ERROR: "+str(text) + "\n")
     print("[-] ERROR: "+str(text))
 
 
 def print_message(text):
     """ for status messages """
+
+    if LOGFILE:
+        with open(LOGFILE, "a") as logfile:
+            logfile.write("[+] ["+str(datetime.datetime.now())+"] "+str(text) + "\n")
     print("[+] "+str(text))
 
 
 def print_text(text):
     """ for raw output of text messages """
+
+    if LOGFILE:
+        with open(LOGFILE, "a") as logfile:
+            logfile.write("[T] ["+str(datetime.datetime.now())+"] "+str(text) + "\n")
     print(str(text))
 
 
 def print_debug(module, text):
     """ for debug messages, use the list ACTIVATED_DEBUG_MODULES to select if it should be printed """
+
     if module in ACTIVATED_DEBUG_MODULES:
-        print("[D] ["+str(module)+"] "+str(text))
+        if LOGFILE:
+            with open(LOGFILE, "a") as logfile:
+                logfile.write("[D] [" + str(datetime.datetime.now()) + "] ["+str(module)+"] " + str(text) + "\n")
+        #print("[D] ["+str(module)+"] "+str(text))
 
 
 def getTerminalSize():

@@ -219,9 +219,9 @@ function Transport-Dns-Intern-SendQuery {
 
     for ($t=0; $t -le $Connection.retries; $t++) {
         $command="nslookup -type=$($Connection.dnstype)$($timeoutstr) $($data) $($Connection.dnsServer)"
-        #Print-Debug "running command: $($command)"
+        Print-Debug "running command: $($command)"
         $c=[string](IEX $command 2>&1)
-        #Print-Debug "result: >>>> $($c) <<<<"
+        Print-Debug "result: >>>> $($c) <<<<"
 
         if ($Connection.dnstype -eq 'TXT') {
             if ($c.Contains('"')) {

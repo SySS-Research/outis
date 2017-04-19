@@ -46,7 +46,7 @@ class SessionCmdProcessor(cmd.Cmd):
             return True
 
     def do_download(self, line):
-        """download REMOTEFILE LOCALTARGETFILE :: download the REMOTEFILE in the agents file system to"""\
+        """download REMOTEFILE LOCALTARGETFILE :: download the REMOTEFILE in the agents file system to """\
                 """LOCALTARGETFILE here"""
 
         v = line.split(" ")
@@ -59,7 +59,7 @@ class SessionCmdProcessor(cmd.Cmd):
         self.msgqueue.join()
 
     def do_upload(self, line):
-        """upload LOCALFILE REMOTETARGETFILE :: upload the LOCALFILE from here to the agent file system as"""\
+        """upload LOCALFILE REMOTETARGETFILE :: upload the LOCALFILE from here to the agent file system as """\
             """REMOTETARGETFILE"""
 
         v = line.split(" ")

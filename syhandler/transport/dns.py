@@ -160,6 +160,7 @@ class TransportDns (Transport, ModuleBase):
         if not self.validate_options():
             return
 
+        self.currentnum = -1
         self.staged = staged
         if not staged:
             self.currentstagenum = -1

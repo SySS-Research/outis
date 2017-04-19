@@ -1,7 +1,6 @@
 import cmd
 
 from syhelpers.log import print_error, print_debug
-from syhandler.handler import Handler
 
 DEBUGMODULE = "CmdHandler"
 
@@ -14,13 +13,14 @@ class HandlerCmdProcessor(cmd.Cmd):
     # prompt to show in front of each input line
     prompt = "syssspy> "
 
-    def __init__(self):
+    def __init__(self, handler):
         """
         constructor for command line processor for handler part
+        :param handler: syssspy handler to work with
         """
 
         super().__init__()
-        self.handler = Handler()
+        self.handler = handler
 
     def emptyline(self):
         """

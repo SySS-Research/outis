@@ -228,7 +228,9 @@ function ReceiveHeader-Async-Start([PSObject] $transport) {
 		        if ($channelencryption -eq "NONE") {
 		            $numb += $transport.stream.Read($buffer, $numb, $messageheaderlen-$numb)
 		        } elseif ($channelencryption -eq "TLS") {
+		            Print-Debug "[ASYNC ReceiveHeader] trying to read TLS channel..."
 		            $numb += $transport.reader.Read($buffer, $numb, $messageheaderlen-$numb)
+		            Print-Debug "[ASYNC ReceiveHeader] done reading TLS channel."
 		        } else {
 		            Print-Debug "[ASYNC ReceiveHeader] invalid channelencryption for DNS"
 		            # TODO: report as error instead
@@ -264,9 +266,10 @@ function ReceiveHeader-Async-IsDone([PSObject] $asyncobj) {
 
 function ReceiveHeader-Async-GetResult([PSObject] $asyncobj) {
 
-    Print-Debug "ended background receive header process"
+    Print-Debug "ending background receive header process..."
     $res = $asyncobj.shell.EndInvoke($asyncobj.job)
     $asyncobj.shell.Dispose()
+    Print-Debug "ended background receive header process."
     return $res
 
 }

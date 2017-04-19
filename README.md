@@ -7,7 +7,7 @@ Dependencies for the Handler
 
 Archlinux users can install the following packages:
 
- * python3 # includes cmd, ...
+ * python3 # includes cmd, tempfile, ...
  * python-progressbar2
  * python-dnspython
  * python-crypto
