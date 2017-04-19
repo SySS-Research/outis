@@ -11,6 +11,7 @@ def xor_encode(text, key):
     text must be bytes, key must be string, result is bytes, sorry...
     """
 
+    # noinspection PyTypeChecker
     return b"".join(bytes([ord(x) ^ y]) for x, y in zip(key*len(text), text))
 
 

@@ -73,7 +73,7 @@ def strip_debug_commands(data):
     strippedCode = re.sub(re.compile('<#.*?#>', re.DOTALL), '', data)
 
     # strip debug statements
-    # noinspection PyPep8
+    # noinspection PyPep8,PyTypeChecker
     strippedCode = "\n".join([line for line in strippedCode.split('\n')
                               if not line.strip().lower().startswith("print-debug ")])
 

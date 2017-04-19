@@ -27,6 +27,7 @@ class HandlerCmdProcessor(cmd.Cmd):
 
         return self.do_exit(line)
 
+    # noinspection PyUnusedLocal
     def do_exit(self, line):
         """exit :: Exit syssspy and end all running tasks."""
 
@@ -44,6 +45,7 @@ class HandlerCmdProcessor(cmd.Cmd):
         key, value = v
         self.handler.setoption(key, value)
 
+    # noinspection PyUnusedLocal
     def complete_set(self, text, line, bigidx, endidx):
         """autocompletion for set command"""
 
@@ -61,6 +63,7 @@ class HandlerCmdProcessor(cmd.Cmd):
             print_debug(DEBUGMODULE, "Cannot autocomplete invalid line")
             return []
 
+    # noinspection PyUnusedLocal
     def do_generatestager(self, line):
         """generatestager :: Generate and print a stager for the current platform and transport."""
 
@@ -71,12 +74,14 @@ class HandlerCmdProcessor(cmd.Cmd):
 
         self.handler.generateagent(filename=line)
 
+    # noinspection PyUnusedLocal
     def do_run(self, line):
         """run :: Run the listener and handle any communication with agents. If staged, the initial connection will """\
             """be upgraded to a full agent using plattform / transport modules."""
 
         self.handler.run()
 
+    # noinspection PyUnusedLocal
     def do_info(self, line):
         """info :: print information of options for the handler and the selected transport and platform modules"""
 

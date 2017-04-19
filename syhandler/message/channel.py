@@ -1,5 +1,5 @@
 from syhelpers.dataqueue import DataQueue
-from syhelpers.log import print_error, print_message, print_debug
+from syhelpers.log import print_error, print_debug
 
 DEBUG_MODULE = "Channel"
 

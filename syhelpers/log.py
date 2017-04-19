@@ -9,6 +9,7 @@ AVAILABLE_DEBUG_MODULES = [
 ACTIVATED_DEBUG_MODULES = []
 
 
+# noinspection PyShadowingBuiltins
 def activate_debug(module):
     """
     activates the given module for debugging
@@ -64,15 +65,21 @@ def print_debug(module, text):
 
 
 def getTerminalSize():
+    """
+    returns the terminal width and height
+    :return: the terminal width and height
+    """
+
     import os
     env = os.environ
 
-    def ioctl_GWINSZ(fd):
+    def ioctl_GWINSZ(fdi):
+        # noinspection PyBroadException
         try:
             import fcntl
             import termios
             import struct
-            cri = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+            cri = struct.unpack('hh', fcntl.ioctl(fdi, termios.TIOCGWINSZ, '1234'))
         except:
             return
         return cri
@@ -80,6 +87,7 @@ def getTerminalSize():
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
 
     if not cr:
+        # noinspection PyBroadException
         try:
             fd = os.open(os.ctermid(), os.O_RDONLY)
             cr = ioctl_GWINSZ(fd)
@@ -94,6 +102,15 @@ def getTerminalSize():
 
 
 def print_table(table, headers, maxwidth=None, columsep="  "):
+    """
+    print a pretty formated ascii table
+    :param table: list of lists for the content
+    :param headers: list of headers
+    :param maxwidth: maximal width of the table, will attempt to break last column lines if longer (default: infty)
+    :param columsep: column seperator (default: two spaces)
+    :return: None
+    """
+
     col_width = [max(len(x) for x in col) for col in zip(*table, headers)]
     print_debug("Log", "current width = "+str(sum(col_width)))
     print_debug("Log", "current width without last line = " + str(sum(col_width[:-1])))
@@ -131,6 +148,14 @@ def print_table(table, headers, maxwidth=None, columsep="  "):
 
 
 def print_table_terminal(table, headers, columsep="  "):
+    """
+    prints a pretty formated table for the terminal width
+    :param table: list of lists for the content
+    :param headers: list of headers
+    :param columsep: column seperator (default: two spaces)
+    :return: None
+    """
+
     width, _ = getTerminalSize()
     print_table(table, headers, maxwidth=width, columsep=columsep)
 
