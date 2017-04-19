@@ -16,6 +16,7 @@ from sycmd.handler import HandlerCmdProcessor
 #activate_debug("Message Parse")
 #activate_debug("Message Create")
 activate_debug("CmdHandler")
+activate_debug("CmdSession")
 
 HandlerCmdProcessor().cmdloop()
 

@@ -1,9 +1,9 @@
 AVAILABLE_DEBUG_MODULES = [
     "Message Parse", "Message Create",
     "PlatformPowershell",
-    "Main", "Handler", "Channel",
+    "Main", "Handler", "Channel", "Log",
     "TransportReverseTcp", "TransportDns",
-    "CmdHandler", "Log"
+    "CmdHandler", "CmdSession"
 ]
 
 ACTIVATED_DEBUG_MODULES = []

@@ -396,6 +396,10 @@ class PlatformPowershell(Platform, ModuleBase):
         agent = agent.encode('utf-8')
         print_debug(DEBUG_MODULE, "len(real agent) = {}".format(len(agent)))
 
+        if staged and (self.options['STAGEAUTHENTICATION']['Value'] == "TRUE"
+                       or self.options['STAGEENCODING']['Value'] == "TRUE"):
+            self._initkeycertificate()
+
         # add spaces if the agent is too short for staging with REVERSETCP
         if staged and self.handler.options['TRANSPORT']['Value'] == "REVERSETCP":
             currentreallen = len(agent)
@@ -417,7 +421,6 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # with stage authentication: publickey + signature + agentcode
         if staged and self.options['STAGEAUTHENTICATION']['Value'] == "TRUE":
-            self._initkeycertificate()
             if not self.publickeyxml:
                 print_error("Cannot sign agent, since STAGEAUTHENTICATION is active but creating the publickeyxml " +
                             "failed. Maybe check STAGECERTIFICATEFILE or other error messages.")
@@ -428,7 +431,6 @@ class PlatformPowershell(Platform, ModuleBase):
 
         # encode agent with fingerprint as encodingkey if active
         if staged and self.options['STAGEENCODING']['Value'] == "TRUE":
-            self._initkeycertificate()
             if not self.fingerprint:
                 print_error("Cannot encode agent, since STAGEENCODING is active but creating the certificate " +
                             "fingerprint failed. Maybe check STAGECERTIFICATEFILE or other error messages.")

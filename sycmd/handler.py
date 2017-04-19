@@ -22,6 +22,14 @@ class HandlerCmdProcessor(cmd.Cmd):
         super().__init__()
         self.handler = Handler()
 
+    def emptyline(self):
+        """
+        will be executed when an emtpy line is entered, default would be to repeat the last command, we pass instead
+        :return: None
+        """
+
+        pass
+
     def do_EOF(self, line):
         """exit :: Exit syssspy and end all running tasks."""
 

@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 import os
+import queue
 import threading
 
 import time
 
+from sycmd.session import SessionCmdProcessor
 from syhandler.message.channel import Channel
 from syhelpers.files import sanatizefilename
 from syhelpers.sythread import SyThread
@@ -62,6 +64,8 @@ class Handler(ModuleBase):
         self.channels = {}
         self.runningthreads = []
         self.receiveheadersthread = None
+        self.cmdprocessorthread = None
+        self.cmdprocessormsgqueue = queue.Queue()
 
     def completeoption(self, name):
         """
@@ -243,12 +247,17 @@ class Handler(ModuleBase):
                 #message1 = self.transport.receivemessage()
                 #self.handleMessage(message1)
 
-                thread = self.download("c:\\Users\\fsteglich\\Desktop\\a.txt", "/tmp/a")
+                #thread = self.download("c:\\Users\\fsteglich\\Desktop\\a.txt", "/tmp/a")
                 #thread = self.upload("/tmp/testfile", "c:\\Users\\fsteglich\\Desktop\\a.txt")
-                self.runningthreads.append(thread)
+                #self.runningthreads.append(thread)
                 #thread.join()
 
+                self.cmdprocessorthread = self.startSessionCmdProcessor()
+
                 self._receiveheader_async_start()
+
+                # are we waiting for a command / thread to finish?
+                waitforit = False
 
                 while self.channels[Message.CHANNEL_COMMAND].isOpen():
 
@@ -260,6 +269,33 @@ class Handler(ModuleBase):
                         nextmessage = self.transport.receivemessage(headers=headers)
                         self.handleMessage(nextmessage)
                         self._receiveheader_async_start()
+
+                    if not self.channels[Message.CHANNEL_COMMAND].isOpen():
+                        break
+
+                    # collect finished threads and send task_done if needed
+                    t = 0
+                    while t < len(self.runningthreads):
+                        # noinspection PyUnresolvedReferences
+                        if not self.runningthreads[t].is_alive():
+                            del self.runningthreads[t]
+                            t -= 1
+                            if waitforit:
+                                self.cmdprocessormsgqueue.task_done()
+                                waitforit = False
+                        t += 1
+
+                    # next try to execute the command from the cmd processor the user entered
+                    if not waitforit and not self.cmdprocessormsgqueue.empty():
+                        # noinspection PyUnresolvedReferences
+                        try:
+                            nextcmd = self.cmdprocessormsgqueue.get_nowait()
+                        except queue.Queue.Emtpy:
+                            nextcmd = None
+                        if nextcmd is not None:
+                            waitforit = self.handleCommand(nextcmd)
+                            if not waitforit:
+                                self.cmdprocessormsgqueue.task_done()
 
                     if not self.channels[Message.CHANNEL_COMMAND].isOpen():
                         break
@@ -350,6 +386,58 @@ class Handler(ModuleBase):
 
         res = self.receiveheadersthread.getResult()
         return res
+
+    def startSessionCmdProcessor(self):
+        """
+        starts a command processor for the session
+        :return: thread of the command processor
+        """
+
+        def processcommands(msgqueue):
+            """
+            processes commands from the session cmd line
+            :param msgqueue: message queue for commands to be added
+            :return: None
+            """
+
+            cmdprocesssor = SessionCmdProcessor(msgqueue)
+            cmdprocesssor.cmdloop()
+
+        cmdprocessorthread = SyThread(target=processcommands, args=(self.cmdprocessormsgqueue,))
+        cmdprocessorthread.start()
+
+        return cmdprocessorthread
+
+    def handleCommand(self, command):
+        """
+        handles a command received via the cmd processor
+        :param command: list of command parts: command name, param1, param2, ...
+        :return: True if we should wait for a new thread to finish before sending task_done
+        """
+
+        if len(command) < 1:
+            print_error("Cannot handle command "+str(command))
+            return False
+        if command[0] == "exit":
+            self.channels[Message.CHANNEL_COMMAND].setClose()
+            return False
+        elif command[0] == "download":
+            if len(command) != 3:
+                print_error("Cannot handle download command with invalid number of arguments: " + str(command))
+                return False
+            thread = self.download(command[1], command[2])
+            self.runningthreads.append(thread)
+            return True
+        elif command[0] == "upload":
+            if len(command) != 3:
+                print_error("Cannot handle upload command with invalid number of arguments: " + str(command))
+                return False
+            thread = self.upload(command[1], command[2])
+            self.runningthreads.append(thread)
+            return True
+        else:
+            print_error("Received invalid command: " + str(command))
+            return False
 
     def handleMessage(self, message):
         """
@@ -613,6 +701,8 @@ class Handler(ModuleBase):
         print_debug(DEBUG_MODULE, "Asking threads to finish")
         if self.receiveheadersthread:
             self.receiveheadersthread.terminate(timeout=1.0)
+        if self.cmdprocessorthread:
+            self.cmdprocessorthread.terminate(timeout=1.0)
         for t in self.runningthreads:
             t.terminate(timeout=1.0)
 
