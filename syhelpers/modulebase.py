@@ -1,5 +1,4 @@
-
-from syhelpers.log import print_error
+from syhelpers.log import print_error, print_table_terminal
 
 
 class ModuleBase:
@@ -14,7 +13,30 @@ class ModuleBase:
         """
         
         self.options = {}
-    
+
+    def completeoption(self, name):
+        """
+        lists autocomplete for option names starting with name
+        :param name: start of the option name
+        :return: list of possible autocompletes
+        """
+
+        return [o for o in self.options.keys() if o.startswith(str(name).upper())]
+
+    def completeoptionvalue(self, name, value):
+        """
+        lists autocomplete for option values starting with value of the option name
+        :param name: name of the option
+        :param value: start of the option value
+        :return: list of possible autocompletes
+        """
+
+        if str(name).upper() not in self.options:
+            return []
+        if "Options" not in self.options[str(name).upper()]:
+            return []
+        return [v for v in self.options[str(name).upper()]['Options'] if v.startswith(str(value).upper())]
+
     def setoption(self, name, value):
         """
         Sets option <name> to value <value> if possible.
@@ -71,3 +93,24 @@ class ModuleBase:
 
         return valid
 
+    def show_options(self):
+        """
+        print information of options for this module
+        :return: None 
+        """
+
+        headers = ["Name", "Value", "Required", "Description"]
+        data = []
+
+        for name in self.options.keys():
+            value = str(self.options[name]["Value"]) if self.options[name]["Value"] else ""
+            required = str(self.options[name]["Required"])
+            description = str(self.options[name]["Description"])
+            if "Options" in self.options[name]:
+                description += " (Options: " + ", ".join(self.options[name]["Options"]) + ")"
+            data.append([str(name), value, required, description])
+
+        if data:
+            print_table_terminal(data, headers=headers)
+        else:
+            print("NO OPTIONS FOUND")

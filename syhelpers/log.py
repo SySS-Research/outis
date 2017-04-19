@@ -1,9 +1,9 @@
-
 AVAILABLE_DEBUG_MODULES = [
     "Message Parse", "Message Create",
     "PlatformPowershell",
     "Main", "Handler", "Channel",
-    "TransportReverseTcp", "TransportDns"
+    "TransportReverseTcp", "TransportDns",
+    "CmdHandler", "Log"
 ]
 
 ACTIVATED_DEBUG_MODULES = []
@@ -61,4 +61,76 @@ def print_debug(module, text):
     """ for debug messages, use the list ACTIVATED_DEBUG_MODULES to select if it should be printed """
     if module in ACTIVATED_DEBUG_MODULES:
         print("[D] ["+str(module)+"] "+str(text))
+
+
+def getTerminalSize():
+    import os
+    env = os.environ
+
+    def ioctl_GWINSZ(fd):
+        try:
+            import fcntl
+            import termios
+            import struct
+            cri = struct.unpack('hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+        except:
+            return
+        return cri
+
+    cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
+
+    if not cr:
+        try:
+            fd = os.open(os.ctermid(), os.O_RDONLY)
+            cr = ioctl_GWINSZ(fd)
+            os.close(fd)
+        except:
+            pass
+
+    if not cr:
+        cr = (env.get('LINES', 25), env.get('COLUMNS', 80))
+
+    return int(cr[1]), int(cr[0])
+
+
+def print_table(table, headers, maxwidth=None, columsep="  "):
+    col_width = [max(len(x) for x in col) for col in zip(*table, headers)]
+    print_debug("Log", "current width = "+str(sum(col_width)))
+    print_debug("Log", "current width without last line = " + str(sum(col_width[:-1])))
+    if maxwidth is not None and sum(col_width) > maxwidth:
+        print_debug("Log", "Need to break last column for terminal width {}".format(maxwidth))
+        lastcolumnwidth = maxwidth - sum(col_width[:-1]) - len(columsep) * (len(col_width) - 1)
+        print_debug("Log", "last column will have a width of " + str(lastcolumnwidth))
+        if lastcolumnwidth < 10:
+            print_error("Cannot plot table for terminal width {}, last column has less than 10 chars".format(maxwidth))
+            return
+        if len(headers[-1]) > lastcolumnwidth:
+            print_error("Cannot plot table for terminal width {}, header of last column too long".format(maxwidth))
+            return
+        col_width[-1] = lastcolumnwidth
+        # TODO: ...
+
+    print(columsep.join("{:{}}".format(x, col_width[i]) for i, x in enumerate(headers)))
+    print(columsep.join(("-" * col_width[i]) for i, x in enumerate(headers)))
+    for line in table:
+        lastcolumn = []
+        lastcolumntmp = line[-1]
+        while len(lastcolumntmp) > col_width[-1]:
+            a = lastcolumntmp.rfind(" ", col_width[-1] - 10, col_width[-1]) + 1
+            if a < col_width[-1] - 10:
+                a = col_width[-1]
+            lastcolumn.append(lastcolumntmp[:a])
+            lastcolumntmp = lastcolumntmp[a:]
+        if len(lastcolumntmp) > 0:
+            lastcolumn.append(lastcolumntmp)
+
+        print(columsep.join("{:{}}".format(x, col_width[i]) for i, x in enumerate(line[:-1]))
+              + columsep + lastcolumn[0])
+        for l in lastcolumn[1:]:
+            print(columsep.join((" " * col_width[i]) for i, x in enumerate(headers[:-1])) + columsep + l)
+
+
+def print_table_terminal(table, headers, columsep="  "):
+    width, _ = getTerminalSize()
+    print_table(table, headers, maxwidth=width, columsep=columsep)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-from syhandler.handler import Handler
 from syhelpers.log import activate_debug
+from sycmd.handler import HandlerCmdProcessor
 
 #import os.path
 #installPath = os.path.abspath(os.path.dirname(__file__))
@@ -15,17 +15,18 @@ from syhelpers.log import activate_debug
 #activate_debug("TransportReverseTcp")
 #activate_debug("Message Parse")
 #activate_debug("Message Create")
+activate_debug("CmdHandler")
 
-handler = Handler()
+HandlerCmdProcessor().cmdloop()
 
-handler.setoption("PLATFORM", "POWERSHELL")
+#handler.setoption("PLATFORM", "POWERSHELL")
 #handler.setoption("AGENTDEBUG", "TRUE")
 
-handler.setoption("TRANSPORT", "DNS")
+#handler.setoption("TRANSPORT", "DNS")
 #handler.setoption("AGENTTYPE", "DNSCAT2")
 #handler.setoption("AGENTTYPE", "DNSCAT2DOWNLOADER")
-handler.setoption("ZONE", "zfs.sy.gs")
-handler.setoption("DNSSERVER", "10.201.1.83")
+#handler.setoption("ZONE", "zfs.sy.gs")
+#handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("DNSTYPE", "A")
 
 #handler.setoption("TRANSPORT", "REVERSETCP")
@@ -37,10 +38,10 @@ handler.setoption("DNSSERVER", "10.201.1.83")
 #handler.setoption("STAGEAUTHENTICATION", "FALSE")
 #handler.setoption("CHANNELENCRYPTION", "NONE")
 
-handler.generatestager()
+#handler.generatestager()
 
-handler.setoption("STAGED", "FALSE")
-handler.generateagent("/tmp/agentfile.txt")
+#handler.setoption("STAGED", "FALSE")
+#handler.generateagent("/tmp/agentfile.txt")
 
-handler.run()
+#handler.run()
 

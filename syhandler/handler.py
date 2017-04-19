@@ -62,7 +62,40 @@ class Handler(ModuleBase):
         self.channels = {}
         self.runningthreads = []
         self.receiveheadersthread = None
-    
+
+    def completeoption(self, name):
+        """
+        lists autocomplete for option names starting with name for the handler or any of 
+        transport and platform modules currently selected
+        :param name: start of the option name
+        :return: list of possible autocompletes
+        """
+
+        l = ModuleBase.completeoption(self, name)
+        if self.transport:
+            l += self.transport.completeoption(name)
+        if self.platform:
+            l += self.platform.completeoption(name)
+
+        return l
+
+    def completeoptionvalue(self, name, value):
+        """
+        lists autocomplete for option values starting with value of the option name
+        for the handler or any of transport and platform modules currently selected
+        :param name: name of the option
+        :param value: start of the option value
+        :return: list of possible autocompletes
+        """
+
+        l = ModuleBase.completeoptionvalue(self, name, value)
+        if self.transport:
+            l += self.transport.completeoptionvalue(name, value)
+        if self.platform:
+            l += self.platform.completeoptionvalue(name, value)
+
+        return l
+
     def setoption(self, name, value):
         """
         set an option for the handler or any of transport and platform modules currently selected
@@ -100,6 +133,30 @@ class Handler(ModuleBase):
         return ModuleBase.validate_options(self) and self.transport.validate_options() and \
             self.platform.validate_options()
 
+    def show_options(self):
+        """
+        print information of options for the handler and the selected transport and platform modules
+        :return: None 
+        """
+
+        print_message("Options for the Handler:")
+        ModuleBase.show_options(self)
+        print()
+
+        if self.transport:
+            print_message("Options for the TRANSPORT module "+str(self.options["TRANSPORT"]["Value"])+":")
+            self.transport.show_options()
+        else:
+            print_message("No TRANSPORT module selected")
+        print()
+
+        if self.platform:
+            print_message("Options for the PLATFORM module "+str(self.options["PLATFORM"]["Value"])+":")
+            self.platform.show_options()
+        else:
+            print_message("No PLATFORM module selected")
+        print()
+
     def generatestager(self):
         """
         generate and print a stager for the current platform / transport
@@ -124,6 +181,10 @@ class Handler(ModuleBase):
             go with the default of False
         :return: None
         """
+
+        if filename == "":
+            print_error("Please provide a file name for the agent to write to")
+            return
 
         if not self.validate_options():
             return
