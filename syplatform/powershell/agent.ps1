@@ -179,7 +179,7 @@ function Command-ReceiveFile([UInt16] $channelid, [string] $filename, [PSObject]
             Print-Debug "[ASYNC ReceiveFile] channel has $($channel.receivequeue.Count) bytes of data"
 
             #Channel-Read $channel 1024 # cannot call this function from job, hacking it
-            $readlen = 1024
+            $readlen = 102400
             if ($channel.receivequeue.Count -lt $readlen) {
                 $readlen = $channel.receivequeue.Count;
             }

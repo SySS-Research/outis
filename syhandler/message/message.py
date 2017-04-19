@@ -17,7 +17,7 @@ class Message:
     HEADER_LEN = 7
 
     # maximal data length for a message
-    MAX_DATA_LEN = 1024 - HEADER_LEN  # TODO: arbitrary value, replace?
+    MAX_DATA_LEN = 102400 - HEADER_LEN  # TODO: arbitrary value, replace?
 
     # this channel should be used for all commands
     CHANNEL_COMMAND = 0
