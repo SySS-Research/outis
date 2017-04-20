@@ -102,11 +102,11 @@ class TransportReverseTcp (Transport, ModuleBase):
         """
         opens the server part and listens for connections
         :param staged: should we stage first?
-        :return: None
+        :return: True if successfull
         """
 
         if not self.validate_options():
-            return
+            return False
 
         self.staged = staged
 
@@ -114,13 +114,18 @@ class TransportReverseTcp (Transport, ModuleBase):
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(lparams)
+        try:
+            self.socket.bind(lparams)
+        except PermissionError as e:
+            print_error("Could not open TCP server on {}:{}: {}".format(*lparams, str(e)))
+            return False
         self.socket.listen(1)
 
         print_message("TCP transport listening on {}:{}".format(*lparams))
 
         self.conn, addr = self.socket.accept()
         print_message("Connection from {}:{}".format(*addr))
+        return True
    
     def send(self, data):
         """

@@ -218,7 +218,8 @@ class Handler(ModuleBase):
             return
 
         try:
-            self.transport.open(staged=self.platform.isstaged())
+            if not self.transport.open(staged=self.platform.isstaged()):
+                return
 
             # if staging is active, provide stager when first conntact
             if self.platform.isstaged():

@@ -155,11 +155,11 @@ class TransportDns (Transport, ModuleBase):
         """
         open the DNS server and listen for connections
         :param staged: should we stage first?
-        :return: None
+        :return: True if successfull
         """
 
         if not self.validate_options():
-            return
+            return False
 
         self.currentnum = -1
         self.staged = staged
@@ -173,10 +173,16 @@ class TransportDns (Transport, ModuleBase):
 
         lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))
 
-        self.server = socketserver.UDPServer(lparams, DnsHandler)
+        try:
+            self.server = socketserver.UDPServer(lparams, DnsHandler)
+        except PermissionError as e:
+            print_error("Could not open DNS server on {}:{}: {}".format(*lparams, str(e)))
+            return False
+
         threading.Thread(target=self.server.serve_forever).start()
 
         print_message("DNS listening on {}:{}".format(*lparams))
+        return True
    
     def send(self, data):
         """
