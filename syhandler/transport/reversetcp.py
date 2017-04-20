@@ -181,6 +181,8 @@ class TransportReverseTcp (Transport, ModuleBase):
         # TODO: newer TLS version?
         # noinspection PyUnresolvedReferences
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        # TODO: PLATFORM STAGECERTIFICATEFILE is not the correct name for this value, move to handler or set a different
+        #   variable in TRANSPORT with the same initial value?
         certkeyfile = sanatizefilename(self.handler.platform.options['STAGECERTIFICATEFILE']['Value'])
         context.load_cert_chain(certfile=certkeyfile, keyfile=certkeyfile)
         self.conn = context.wrap_socket(self.conn, server_side=True)
