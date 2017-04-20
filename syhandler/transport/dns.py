@@ -10,6 +10,7 @@ import time
 
 from syhelpers.dataqueue import DataQueue
 from syhelpers.encoding import dnshostdecode, dnstxtencode, lenofb64decoded, dnsip4encode, dnshostencode, dnsip6encode
+from syhelpers.files import sanatizefilename
 from syhelpers.types import isportnumber, isint
 from .transport import Transport
 from syhelpers.log import *
@@ -273,8 +274,8 @@ class TransportDns (Transport, ModuleBase):
         # TODO: newer TLS version?
         # noinspection PyUnresolvedReferences
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-        # TODO: load the certificate from the correct option path
-        context.load_cert_chain(certfile="./data/syssspy.pem", keyfile="./data/syssspy.pem")
+        certkeyfile = sanatizefilename(self.handler.platform.options['STAGECERTIFICATEFILE']['Value'])
+        context.load_cert_chain(certfile=certkeyfile, keyfile=certkeyfile)
         self.conn = context.wrap_bio(self.recvdataqueue.memorybio, self.senddataqueue.memorybio, server_side=True)
         print_message("Waiting for connection and TLS handshake...")
         while True:
