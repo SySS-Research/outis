@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from syhandler.handler import Handler
-from syhelpers.log import activate_debug, print_message, LOGFILE
+#from syhelpers.log import activate_debug
 from sycmd.handler import HandlerCmdProcessor
 
 #import os.path
@@ -47,5 +47,3 @@ handler = Handler()
 #handler.run()
 
 HandlerCmdProcessor(handler).cmdloop()
-
-# syssspy session> download C:\Users\fsteglich\Desktop\test.txt /tmp/out.txt

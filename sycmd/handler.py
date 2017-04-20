@@ -1,6 +1,6 @@
 import cmd
 
-from syhelpers.log import print_error, print_debug
+from syhelpers.log import print_error, print_debug, activate_debug, AVAILABLE_DEBUG_MODULES
 
 DEBUGMODULE = "CmdHandler"
 
@@ -94,3 +94,15 @@ class HandlerCmdProcessor(cmd.Cmd):
         """info :: print information of options for the handler and the selected transport and platform modules"""
 
         self.handler.show_options()
+
+    # noinspection PyMethodMayBeStatic
+    def do_activate_debug(self, line):
+        """activate_debug <MODULE> :: enables debug output to logfile for this module"""
+
+        activate_debug(line)
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def complete_activate_debug(self, text, line, bigidx, endidx):
+        """autocompletion for activate_debug modules"""
+
+        return [v for v in AVAILABLE_DEBUG_MODULES if v.startswith(str(text))]

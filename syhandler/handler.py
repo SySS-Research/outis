@@ -1,8 +1,6 @@
-#!/usr/bin/python3
-import os
 import queue
 import threading
-
+import os
 import time
 
 from sycmd.session import SessionCmdProcessor

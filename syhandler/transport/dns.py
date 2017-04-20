@@ -1,12 +1,11 @@
 import socketserver
-
 import binascii
 import ssl
 import threading
-
 import math
-
 import time
+import dns
+import dns.message
 
 from syhelpers.dataqueue import DataQueue
 from syhelpers.encoding import dnshostdecode, dnstxtencode, lenofb64decoded, dnsip4encode, dnshostencode, dnsip6encode
@@ -15,8 +14,6 @@ from syhelpers.types import isportnumber, isint
 from .transport import Transport
 from syhelpers.log import *
 from syhelpers.modulebase import ModuleBase
-import dns
-import dns.message
 
 DEBUG_MODULE = "TransportDns"
 

