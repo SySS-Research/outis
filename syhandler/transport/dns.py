@@ -160,6 +160,8 @@ class TransportDns (Transport, ModuleBase):
 
         self.currentnum = -1
         self.staged = staged
+        self.progress = None
+        self.maxstagenum = None
         if not staged:
             self.currentstagenum = -1
         else:
