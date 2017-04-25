@@ -108,6 +108,8 @@ class TransportReverseTcp (Transport, ModuleBase):
         if not self.validate_options():
             return False
 
+        self.conn = None
+        self.socket = None
         self.staged = staged
 
         lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))        

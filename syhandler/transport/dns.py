@@ -158,10 +158,19 @@ class TransportDns (Transport, ModuleBase):
         if not self.validate_options():
             return False
 
-        self.currentnum = -1
+        # reset all internal values
+        self.conn = None
+        self.server = None
         self.staged = staged
+        self.currentstagenum = 0
+        self.currentnum = -1
+        self.senddataqueue = DataQueue()
+        self.recvdataqueue = DataQueue()
         self.progress = None
         self.maxstagenum = None
+        self.laststagepart = None
+        self.lastpart = None
+
         if not staged:
             self.currentstagenum = -1
         else:
