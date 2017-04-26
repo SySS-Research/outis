@@ -145,7 +145,7 @@ def print_table(table, headers, maxwidth=None, columsep="  "):
     :return: None
     """
 
-    col_width = [max(len(x) for x in col) for col in zip(*table, headers)]
+    col_width = [max(len(x) for x in col) for col in zip(headers, *table)]
     print_debug("Log", "current width = "+str(sum(col_width)))
     print_debug("Log", "current width without last line = " + str(sum(col_width[:-1])))
     if maxwidth is not None and sum(col_width) > maxwidth:

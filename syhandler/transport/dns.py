@@ -74,7 +74,7 @@ class TransportDns (Transport, ModuleBase):
         self.maxstagenum = None
         self.laststagepart = None
         self.lastpart = None
-    
+
     def setoption(self, name, value):
         """
         Sets an option
@@ -133,7 +133,7 @@ class TransportDns (Transport, ModuleBase):
         """
         Validate all currently set listener options.
         """
-        
+
         valid = ModuleBase.validate_options(self)
 
         # TODO: check interface ip LHOST and DNSSERVER
@@ -147,7 +147,7 @@ class TransportDns (Transport, ModuleBase):
             valid = False
 
         return valid
-    
+
     def open(self, staged=False):
         """
         open the DNS server and listen for connections
@@ -184,14 +184,15 @@ class TransportDns (Transport, ModuleBase):
         try:
             self.server = socketserver.UDPServer(lparams, DnsHandler)
         except PermissionError as e:
-            print_error("Could not open DNS server on {}:{}: {}".format(*lparams, str(e)))
+            print_error("Could not open DNS server on {}:{}: {}".format(lparams[0], lparams[1],
+                                                                        str(e)))
             return False
 
         threading.Thread(target=self.server.serve_forever).start()
 
-        print_message("DNS listening on {}:{}".format(*lparams))
+        print_message("DNS listening on {}:{}".format(lparams[0], lparams[1]))
         return True
-   
+
     def send(self, data):
         """
         send data to the connected host

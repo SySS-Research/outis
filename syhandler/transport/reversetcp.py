@@ -47,7 +47,7 @@ class TransportReverseTcp (Transport, ModuleBase):
         self.conn = None
         self.socket = None
         self.staged = False
-    
+
     def setoption(self, name, value):
         """
         Sets an option
@@ -83,9 +83,9 @@ class TransportReverseTcp (Transport, ModuleBase):
         """
         Validate all currently set listener options.
         """
-        
+
         valid = ModuleBase.validate_options(self)
-        
+
         # TODO: check ips
 
         # check port
@@ -97,7 +97,7 @@ class TransportReverseTcp (Transport, ModuleBase):
             valid = False
 
         return valid
-    
+
     def open(self, staged=False):
         """
         opens the server part and listens for connections
@@ -112,23 +112,24 @@ class TransportReverseTcp (Transport, ModuleBase):
         self.socket = None
         self.staged = staged
 
-        lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))        
+        lparams = (self.options['LHOST']['Value'], int(self.options['LPORT']['Value']))
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             self.socket.bind(lparams)
         except PermissionError as e:
-            print_error("Could not open TCP server on {}:{}: {}".format(*lparams, str(e)))
+            print_error("Could not open TCP server on {}:{}: {}".format(lparams[0], lparams[1],
+                                                                        str(e)))
             return False
         self.socket.listen(1)
 
-        print_message("TCP transport listening on {}:{}".format(*lparams))
+        print_message("TCP transport listening on {}:{}".format(lparams[0], lparams[1]))
 
         self.conn, addr = self.socket.accept()
-        print_message("Connection from {}:{}".format(*addr))
+        print_message("Connection from {}:{}".format(addr[0], addr[1]))
         return True
-   
+
     def send(self, data):
         """
         send data to the connected host
