@@ -1,5 +1,4 @@
-
-outis is a custom Remote Administration Tool (RAT) or something like than. Think Meterpreter or Empire-Agent. However, the focus of this tool is neither an exploit toolkit (there are no exploits) nor persistant management of targets. The focus is to communicate between server and target system and to transfer files, share sockets, spawn shells and so on using varios methods and platforms.
+outis is a custom Remote Administration Tool (RAT) or something like that. Think Meterpreter or Empire-Agent. However, the focus of this tool is neither an exploit toolkit (there are no exploits) nor persistent management of targets. The focus is to communicate between server and target system and to transfer files, share sockets, spawn shells and so on using various methods and platforms.
 
 
 On the Name
