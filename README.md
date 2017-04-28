@@ -1,3 +1,6 @@
+outis
+=====
+
 outis is a custom Remote Administration Tool (RAT) or something like that. Think Meterpreter or Empire-Agent. However, the focus of this tool is neither an exploit toolkit (there are no exploits) nor persistent management of targets. The focus is to communicate between server and target system and to transfer files, share sockets, spawn shells and so on using various methods and platforms.
 
 
@@ -317,3 +320,9 @@ This project was inspired by (and shamelessly stole part of its code from):
  * dnsftp
    * https://github.com/breenmachine/dnsftp
      — short script parts for stagers via DNS
+
+Disclaimer
+==========
+
+Use at your own risk. Do not use without full consent of everyone involved.
+For educational purposes only.
