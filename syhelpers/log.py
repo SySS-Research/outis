@@ -34,7 +34,7 @@ def activate_debug(module):
     if not ACTIVATED_DEBUG_MODULES:
         import os
         global LOGFILE
-        LOGFILE = str(os.path.join(tempfile.gettempdir(), "syssspy.log"))
+        LOGFILE = str(os.path.join(tempfile.gettempdir(), "outis.log"))
         print_message("DEBUGGING is active, writing to debug file " + str(LOGFILE))
 
     # add module to ACTIVATED_DEBUG_MODULES

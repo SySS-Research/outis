@@ -11,12 +11,12 @@ class SessionCmdProcessor(cmd.Cmd):
     """
 
     # prompt to show in front of each input line
-    prompt = "syssspy session> "
+    prompt = "outis session> "
 
     def __init__(self, messagequeue):
         """
         constructor for command line processor for session part
-        :param messagequeue: 
+        :param messagequeue:
         """
 
         super().__init__()

@@ -31,7 +31,7 @@ function Transport-Tls-Open {
 
     $tlsStream = New-Object System.Net.Security.SslStream $SocketStream,$true,$Callback
     # TODO: catch certificate errors here, else lots of errors
-    $tlsStream.AuthenticateAsClient("syssspy")
+    $tlsStream.AuthenticateAsClient("outis")
     $reader = New-Object System.IO.BinaryReader($tlsStream)
     $writer = New-Object System.IO.BinaryWriter($tlsStream)
 

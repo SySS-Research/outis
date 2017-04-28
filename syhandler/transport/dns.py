@@ -30,7 +30,7 @@ class TransportDns (Transport, ModuleBase):
     def __init__(self, handler):
         """
         initializese the module
-        :param handler: backreference to syssspy handler object
+        :param handler: backreference to outis handler object
         """
 
         self.options = {

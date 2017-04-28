@@ -54,10 +54,10 @@ class PlatformPowershell(Platform, ModuleBase):
                                     'staged agent with (you can generate a selfsigned cert by using the script ' +
                                     'gencert.sh initially)',
                 'Required'      :   False,
-                'Value'         :   "$TOOLPATH/data/syssspy.pem"
+                'Value'         :   "$TOOLPATH/data/outis.pem"
             },
             'AGENTTYPE': {
-                'Description'   :   'Defines which agent should be used (the default syssspy agent for this ' +
+                'Description'   :   'Defines which agent should be used (the default outis agent for this ' +
                                     'plattform, or some third party software we support)',
                 'Required'      :   True,
                 'Value'         :   "DEFAULT",
@@ -147,17 +147,17 @@ class PlatformPowershell(Platform, ModuleBase):
         """
         sign the data with the already loaded private key
         """
-        
+
         if not self.privatekey:
             return None
         return syhelpers.tls.create_signature(self.privatekey, data)
-    
+
     def _getfingerprint(self):
         """
         returns the fingerprint = b64(sha512(rsapublickeyxml))
         to verify the server certificate in the stager and to also do stage encoding
         """
-        
+
         return base64.b64encode(encryption.sha512(self.publickeyxml.encode())).decode()
 
     def _getrsapublickeyxml(self):
@@ -503,7 +503,7 @@ class PlatformPowershell(Platform, ModuleBase):
 
     def getagent_default(self, staged=None):
         """
-        return the default syssspy agent code
+        return the default outis agent code
         :param staged: can be set to True or False to use that value, if not set self.isstaged() is used
         :return: agent string
         """

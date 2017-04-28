@@ -11,12 +11,12 @@ class HandlerCmdProcessor(cmd.Cmd):
     """
 
     # prompt to show in front of each input line
-    prompt = "syssspy> "
+    prompt = "outis> "
 
     def __init__(self, handler):
         """
         constructor for command line processor for handler part
-        :param handler: syssspy handler to work with
+        :param handler: outis handler to work with
         """
 
         super().__init__()
@@ -31,13 +31,13 @@ class HandlerCmdProcessor(cmd.Cmd):
         pass
 
     def do_EOF(self, line):
-        """exit :: Exit syssspy and end all running tasks."""
+        """exit :: Exit outis and end all running tasks."""
 
         return self.do_exit(line)
 
     # noinspection PyUnusedLocal
     def do_exit(self, line):
-        """exit :: Exit syssspy and end all running tasks."""
+        """exit :: Exit outis and end all running tasks."""
 
         self.handler.stop()
         return True

