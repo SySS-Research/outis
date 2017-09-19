@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from syhandler.handler import Handler
 #from syhelpers.log import activate_debug
 from sycmd.handler import HandlerCmdProcessor
